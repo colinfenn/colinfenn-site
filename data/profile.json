@@ -5,7 +5,7 @@
   "throws": "L",
   "bats": "Placeholder",
   "height": "5'7\"",
-  "weight": "Placeholder",
+  "weight": "140 lbs",
   "school": "San Marin High School",
   "schoolLocation": "Novato, CA",
   "travelTeam": "NorCal Black",
@@ -21,8 +21,8 @@
     }
   ],
   "academics": {
-    "gpa": "Placeholder",
-    "gpaScale": "4.0",
+    "gpa": "3.6",
+    "gpaScale": "4.0 unweighted",
     "testScores": "Placeholder",
     "intendedMajor": "Placeholder",
     "updated": "Placeholder"
