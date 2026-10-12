@@ -1,6 +1,8 @@
 # One-time setup for the editor
 
-This is the phone editor at `https://colinfenn.com/admin`. Colin logs in with GitHub and can change videos, stats, the schedule, showcases, GPA, and the rest of the profile. Saving writes the same JSON files the site already uses. Netlify then publishes the site again. There is no build step.
+Colin posts videos at `https://colinfenn.com/admin`. Stats, the schedule, showcases, GPA, and the rest of the profile are in the full editor at `https://colinfenn.com/admin/advanced`. Both save the same JSON files the site already uses. Netlify then publishes the site again. There is no build step.
+
+If GitHub login is already installed on colinfenn.com, there is nothing new to set up. The video page uses that same login. Skip to [How Colin uses it](#5-how-colin-uses-it). The steps below are the original one-time setup, kept here in case the site is ever linked again.
 
 Do this once, on the **existing** colinfenn.com site. Don't make a second Netlify site, and don't choose "Push to new repository" — that would create a different GitHub repo.
 
@@ -60,27 +62,30 @@ Anyone with Write access can change the live site from `/admin` or from GitHub. 
 
 ## 5. How Colin uses it
 
+Day to day he uses the simple page, not the full editor.
+
 1. On his phone, open `https://colinfenn.com/admin` (the live site, not a file on the phone).
-2. Tap **Login with GitHub** and approve the GitHub screen. It asks for access to his repositories so the editor can save files. That's expected.
-3. If no login window opens, the phone blocked the pop-up. Allow pop-ups for colinfenn.com and try again. Doing the first login on a computer also works.
-4. Pick **Videos**, **Season stats**, **Schedule and showcases**, or **Profile and GPA**.
-5. Edit, then tap **Publish** at the top and choose **Publish now**. Wait a minute or two and refresh colinfenn.com.
+2. Tap **Log in with GitHub** and approve the GitHub screen. It asks for access to his repositories so the page can save files. That's expected.
+3. If no login window opens, the phone blocked the pop-up. Allow pop-ups for colinfenn.com and try again. The first login on a computer also works.
+4. To keep it on his home screen: in Safari, tap Share, then **Add to Home Screen**. In Chrome, use the browser menu and **Add to Home screen** or **Install app**. The icon is a baseball.
+5. Tap **Add Video**.
+6. Choose a clip from the camera roll, record one, or paste a YouTube link. A video over 50 MB stays off the site. The page asks him to put that one on YouTube (unlisted is fine) and paste the link.
+7. Tap a category: Pitching, Hitting, Fielding, Workouts/Training, or Game Highlights. Those words are the tabs on the site.
+8. For pitching, tap the pitch (fastball, sinker, slider, curveball, changeup, or cutter), the camera angle, and Game or Bullpen. Hitting and fielding ask for angle and Game or Bullpen. He can skip a tag.
+9. Type a caption. The date starts as today. The title fills in from what he tapped, and he can change it.
+10. Check the preview. It is the same card the site shows. Tap **Post it**. Leave the page open until it says **Posted**. Wi-Fi is easier than cell data.
+11. The live site updates after Netlify finishes the deploy, usually a minute or two.
+12. **My videos** lists what he posted. **Edit** changes the title, caption, category, or tags. **Delete** takes the video off the site. Blank “Video coming soon” cards are tucked at the bottom so he can remove one after he replaces it.
 
-Videos:
+Uploaded videos are stored in this repo under `media/videos`. YouTube links are stored as links. A phone video can be an MP4, MOV, or WebM. MOV is what an iPhone records, and it plays on iPhones.
 
-- Pick a category: Pitching, Hitting, Fielding, Workouts/Training, or Game Highlights. Those words have to stay exactly like that — they are the tabs on the site.
-- Pitch, camera angle, and game-or-bullpen become the filter buttons. Leave them as "Not tagged" when they don't apply.
-- The caption is the sentence under the video.
-- Paste a YouTube link **or** upload an MP4, not both. If both are filled in, the file is what plays.
-- Keep each MP4 under **50 MB**. GitHub rejects a file over 100 MB, and a phone will struggle with a big upload. Put full games and long reels on YouTube and paste the link. Wi-Fi is easier than cell data.
-- Uploaded videos are stored in this repo under `media/videos`.
-
-GPA is under **Profile and GPA**, in the Academics section. Type `Placeholder` in a box that isn't ready yet. The site already treats that word as "not filled in."
+Stats, the schedule, showcases, GPA, and the rest of the profile are at `https://colinfenn.com/admin/advanced`. Open that, log in, edit, then tap **Publish** and **Publish now**. GPA is under **Profile and GPA**, in the Academics section. Type `Placeholder` in a box that isn't ready yet. The site already treats that word as "not filled in."
 
 ## If login fails
 
 - **"Login with GitHub" does nothing.** Allow pop-ups, or try a computer.
 - **GitHub says the app isn't set up, or Netlify returns an error.** Check the callback URL is exactly `https://api.netlify.com/auth/done`, and that the Client ID and secret are saved on this Netlify site (the one that serves colinfenn.com).
-- **He gets in but Publish fails, or GitHub says he doesn't have permission.** He isn't a collaborator yet, or he hasn't accepted the invite, or the role isn't Write.
+- **He gets in but the save fails, or GitHub says he doesn't have permission.** He isn't a collaborator yet, or he hasn't accepted the invite, or the role isn't Write. On the full editor, the same problem shows up when **Publish** fails.
 - **The admin page is a 404.** The main branch hasn't been deployed yet. Finish step 1 and wait for the deploy.
-- **He edited the site but the live page didn't change.** Wait for the Netlify deploy to finish (Deploys tab). Then refresh. A hard refresh helps if the phone kept the old page.
+- **He posted a video but the live page didn't change.** Wait for the Netlify deploy to finish (Deploys tab). Then refresh. A hard refresh helps if the phone kept the old page.
+- **A long video won't upload.** That's expected over 50 MB. He puts it on YouTube and pastes the link.

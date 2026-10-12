@@ -2,19 +2,29 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow">
-<title>Update Colin Fenn's site</title>
-<link rel="stylesheet" href="admin.css">
+<meta name="theme-color" content="#0a1628">
+<meta name="color-scheme" content="light">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Post video">
+<title>Post a video — Colin Fenn</title>
+<link rel="manifest" href="/admin/manifest.webmanifest">
+<link rel="icon" href="/admin/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/admin/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/admin/app.css">
 </head>
 <body>
-<header class="admin-help">
-  <h1>Update Colin's site</h1>
-  <p>Log in with GitHub, make the change, then tap <strong>Publish</strong> and <strong>Publish now</strong>. The live site updates in a minute or two. Use a YouTube link for long videos. An uploaded MP4 must be under 50&nbsp;MB.</p>
-</header>
-<div id="nc-root"></div>
-<script>window.CMS_MANUAL_INIT = true;</script>
-<script src="https://cdn.jsdelivr.net/npm/decap-cms@3.16.3/dist/decap-cms.js"></script>
-<script src="admin.js"></script>
+<a class="skip" href="#main">Skip to content</a>
+<div id="live" class="sr" role="status" aria-live="polite"></div>
+<div id="app" class="app" aria-busy="true"></div>
+<noscript><p>This page needs JavaScript so you can post a video.</p></noscript>
+<script src="/admin/logic.js"></script>
+<script src="/admin/app.js"></script>
 </body>
 </html>

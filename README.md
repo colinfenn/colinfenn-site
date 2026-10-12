@@ -17,4 +17,4 @@ Then open http://localhost:8000.
 | `data/schedule.json` | Games, showcases, and camps |
 | `data/videos.json` | Video clips (a YouTube link or an MP4) |
 
-Colin can edit those files from his phone at `/admin` after the one-time setup in [ADMIN-SETUP.md](ADMIN-SETUP.md). Netlify publishes this repository as-is (`netlify.toml`).
+Colin posts videos from his phone at `/admin` (add it to the home screen). Stats, the schedule, and profile fields such as GPA are in the full editor at `/admin/advanced`. One-time setup is in [ADMIN-SETUP.md](ADMIN-SETUP.md). Netlify publishes this repository as-is (`netlify.toml`).

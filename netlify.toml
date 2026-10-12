@@ -17,3 +17,13 @@
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
     Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/admin/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+
+[[headers]]
+  for = "/admin/advanced/config.yml"
+  [headers.values]
+    Content-Type = "text/yaml"
