@@ -5,10 +5,10 @@
   "throws": "L",
   "bats": "Placeholder",
   "height": "5'7\"",
-  "weight": "Placeholder",
+  "weight": "140 lbs",
   "school": "San Marin High School",
   "schoolLocation": "Novato, CA",
-  "travelTeam": "NorCal Black",
+  "travelTeam": "NorCal Black 2029",
   "photo": "",
   "email": "colin@colinfenn.com",
   "tagline": "Two-way player: left-handed pitcher with a five-pitch mix and outfielder.",
@@ -21,8 +21,8 @@
     }
   ],
   "academics": {
-    "gpa": "Placeholder",
-    "gpaScale": "4.0",
+    "gpa": "3.6",
+    "gpaScale": "4.0 unweighted",
     "testScores": "Placeholder",
     "intendedMajor": "Placeholder",
     "updated": "Placeholder"
@@ -95,7 +95,7 @@
     {
       "role": "Travel Coach",
       "name": "Placeholder",
-      "team": "NorCal Black",
+      "team": "NorCal Black 2029",
       "email": "",
       "phone": "",
       "quote": "Short quote from coach about Colin's work ethic, competitiveness, and coachability.",

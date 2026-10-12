@@ -208,7 +208,7 @@ collections:
             fields:
               - { label: Date, name: date, widget: string, hint: "Example: April 12, 2026" }
               - { label: Event, name: event, widget: string, hint: "Who you play, or the name of the game" }
-              - { label: Team, name: team, widget: string, required: false, hint: "Example: San Marin HS or NorCal Black" }
+              - { label: Team, name: team, widget: string, required: false, hint: "Example: San Marin HS or NorCal Black 2029" }
               - { label: Location, name: location, widget: string, required: false }
           - label: Showcases and camps
             name: showcases
