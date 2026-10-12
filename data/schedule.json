@@ -1,0 +1,35 @@
+{
+  "example": true,
+  "events": [
+    {
+      "date": "TBD",
+      "event": "Placeholder game / showcase",
+      "team": "NorCal Black",
+      "location": "TBD"
+    },
+    {
+      "date": "TBD",
+      "event": "Placeholder game",
+      "team": "San Marin HS",
+      "location": "Novato, CA"
+    }
+  ],
+  "showcases": [
+    {
+      "status": "Upcoming",
+      "date": "TBD",
+      "event": "Placeholder showcase (e.g., PG / PBR)",
+      "location": "TBD",
+      "results": "",
+      "placeholder": true
+    },
+    {
+      "status": "Past",
+      "date": "TBD",
+      "event": "Placeholder camp",
+      "location": "TBD",
+      "results": "Velo, metrics, or notes",
+      "placeholder": true
+    }
+  ]
+}

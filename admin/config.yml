@@ -1,0 +1,407 @@
+# Login is GitHub, through Netlify's OAuth app (see ADMIN-SETUP.md).
+# Git Gateway is not used. local_backend only turns on for localhost.
+local_backend: true
+
+backend:
+  name: github
+  repo: colinfenn/colinfenn-site
+  branch: main
+  base_url: https://api.netlify.com
+  auth_endpoint: auth
+  auth_scope: repo
+  commit_messages:
+    create: "Update {{collection}} on colinfenn.com"
+    update: "Update {{collection}} on colinfenn.com"
+    delete: "Update {{collection}} on colinfenn.com"
+    uploadMedia: "Add file {{path}}"
+    deleteMedia: "Remove file {{path}}"
+
+publish_mode: simple
+site_url: https://colinfenn.com
+display_url: https://colinfenn.com
+media_folder: media/videos
+public_folder: /media/videos
+
+collections:
+  - name: videos
+    label: Videos
+    label_singular: Video
+    description: Add a clip with a YouTube link or a short MP4. Long videos belong on YouTube.
+    format: site-videos
+    extension: json
+    editor:
+      preview: false
+    files:
+      - name: videos
+        label: All videos
+        file: data/videos.json
+        description: Tap a video to edit it, or add one. Publish when you are done. Each upload must be under 50 MB.
+        fields:
+          - label: Videos
+            name: videos
+            widget: list
+            label_singular: Video
+            summary: "{{title}} — {{category}}"
+            collapsed: true
+            add_to_top: true
+            hint: Use one or the other — a YouTube link, or an MP4 under 50 MB. If you fill in both, the uploaded file is the one that plays.
+            fields:
+              - label: Title
+                name: title
+                widget: string
+                hint: "Short name, like Bullpen sinker or Friday highlights."
+              - label: Category
+                name: category
+                widget: select
+                default: Pitching
+                options:
+                  - Pitching
+                  - Hitting
+                  - Fielding
+                  - "Workouts/Training"
+                  - "Game Highlights"
+                hint: This picks the tab on the site. Don't invent a new one.
+              - label: YouTube link
+                name: youtube
+                widget: string
+                required: false
+                hint: "Paste the address of the video, like https://www.youtube.com/watch?v=… Leave blank if you are uploading a file instead."
+              - label: Or upload an MP4
+                name: file
+                widget: file
+                required: false
+                choose_url: false
+                media_folder: /media/videos
+                public_folder: /media/videos
+                hint: "MP4 only, under 50 MB. A full game is too big for the site and for a phone upload — put that on YouTube and paste the link. Wi-Fi is easier than cell data."
+                media_library:
+                  config:
+                    max_file_size: 50000000
+              - label: Pitch
+                name: pitch
+                widget: select
+                required: false
+                default: ""
+                options:
+                  - { label: "Not tagged", value: "" }
+                  - Sinker
+                  - Slider
+                  - Curveball
+                  - Changeup
+                  - Cutter
+                  - Fastball
+                hint: Shows as a filter button. Leave as Not tagged for hitting, fielding, workouts, and highlights.
+              - label: Camera angle
+                name: angle
+                widget: select
+                required: false
+                default: ""
+                options:
+                  - { label: "Not tagged", value: "" }
+                  - "Open side"
+                  - "Behind mound"
+                  - Front
+                  - Side
+              - label: Game or bullpen
+                name: setting
+                widget: select
+                required: false
+                default: ""
+                options:
+                  - { label: "Not tagged", value: "" }
+                  - Game
+                  - Bullpen
+              - label: Date
+                name: date
+                widget: string
+                required: false
+                hint: "Example: April 12, 2026. TBD is fine if you don't know yet."
+              - label: Caption
+                name: caption
+                widget: text
+                required: false
+                hint: Shown under the video on the site.
+
+  - name: stats
+    label: Season stats
+    description: Hitting and pitching numbers, one row per season.
+    format: site-stats
+    extension: json
+    editor:
+      preview: false
+    files:
+      - name: stats
+        label: Season stats
+        file: data/stats.json
+        description: Type the numbers the way they should look on the site, like .408 or 41.0. Leave a box blank if you don't have that stat.
+        fields:
+          - label: Hitting rows are only an example
+            name: hittingExample
+            widget: boolean
+            default: false
+            hint: Leave this off for real stats. While it is on, the site marks the hitting table as an example.
+          - label: Hitting note
+            name: hittingNote
+            widget: string
+            required: false
+            hint: Optional. Only shows when the example switch above is on.
+          - label: Hitting seasons
+            name: hittingRows
+            widget: list
+            label_singular: Season
+            summary: "{{season}} · {{team}}"
+            collapsed: true
+            fields:
+              - { label: Season, name: season, widget: string, hint: "Example: 2026" }
+              - { label: Team, name: team, widget: string, hint: "Example: San Marin HS (Freshman)" }
+              - { label: AVG, name: avg, widget: string, required: false, hint: "Batting average, example .408" }
+              - { label: SLG, name: slg, widget: string, required: false, hint: "Slugging" }
+              - { label: OPS, name: ops, widget: string, required: false }
+              - { label: "C% (contact)", name: cpct, widget: string, required: false, hint: "Example: 89.80%" }
+          - label: Pitching rows are only an example
+            name: pitchingExample
+            widget: boolean
+            default: false
+            hint: Leave this off for real stats.
+          - label: Pitching note
+            name: pitchingNote
+            widget: string
+            required: false
+            hint: Optional. Only shows when the example switch above is on.
+          - label: Pitching seasons
+            name: pitchingRows
+            widget: list
+            label_singular: Season
+            summary: "{{season}} · {{team}}"
+            collapsed: true
+            fields:
+              - { label: Season, name: season, widget: string, hint: "Example: 2026" }
+              - { label: Team, name: team, widget: string }
+              - { label: IP, name: ip, widget: string, required: false, hint: "Innings pitched, example 41.0" }
+              - { label: SO, name: so, widget: string, required: false, hint: "Strikeouts" }
+              - { label: "S% (strikes)", name: spct, widget: string, required: false, hint: "Example: 51.96%" }
+              - { label: BB/IP, name: bbIp, widget: string, required: false, hint: "Walks per inning, example .585" }
+
+  - name: schedule
+    label: Schedule and showcases
+    description: Games, showcases, and camps.
+    extension: json
+    editor:
+      preview: false
+    files:
+      - name: schedule
+        label: Schedule and showcases
+        file: data/schedule.json
+        description: Turn off "Schedule not announced yet" once the games are real.
+        fields:
+          - label: Schedule not announced yet
+            name: example
+            widget: boolean
+            default: true
+            hint: Leave this on until the games below are real. While it is on, the site says the schedule is still to be announced.
+          - label: Games
+            name: events
+            widget: list
+            label_singular: Game
+            summary: "{{date}} · {{event}}"
+            collapsed: true
+            fields:
+              - { label: Date, name: date, widget: string, hint: "Example: April 12, 2026" }
+              - { label: Event, name: event, widget: string, hint: "Who you play, or the name of the game" }
+              - { label: Team, name: team, widget: string, required: false, hint: "Example: San Marin HS or NorCal Black" }
+              - { label: Location, name: location, widget: string, required: false }
+          - label: Showcases and camps
+            name: showcases
+            widget: list
+            label_singular: Showcase
+            summary: "{{status}} · {{event}}"
+            collapsed: true
+            fields:
+              - label: Upcoming or past
+                name: status
+                widget: select
+                default: Upcoming
+                options:
+                  - Upcoming
+                  - Past
+                hint: Upcoming and Past are the two tabs on the site. Use those words exactly.
+              - { label: Date, name: date, widget: string, hint: "Example: June 2026, or TBD" }
+              - { label: Event, name: event, widget: string }
+              - { label: Location, name: location, widget: string, required: false }
+              - label: Results
+                name: results
+                widget: string
+                required: false
+                hint: "For a past event: velo, metrics, or a short note. Leave blank if you don't have results yet."
+              - label: Still a placeholder
+                name: placeholder
+                widget: boolean
+                default: false
+                hint: Turn on only if this event is not real yet. The site shows a Placeholder tag.
+
+  - name: profile
+    label: Profile and GPA
+    description: Name, GPA, photo, honors, pitches, and coaches.
+    format: site-profile
+    extension: json
+    editor:
+      preview: false
+    files:
+      - name: profile
+        label: Profile
+        file: data/profile.json
+        description: GPA is in the Academics section. Type Placeholder in a box you don't know yet.
+        fields:
+          - { label: Name, name: name, widget: string }
+          - label: Class year
+            name: gradYear
+            widget: number
+            hint: "Example: 2029"
+            value_type: int
+            step: 1
+          - { label: Position, name: position, widget: string, hint: "Example: LHP / OF" }
+          - { label: Throws, name: throws, widget: string, hint: "L or R" }
+          - { label: Bats, name: bats, widget: string, required: false, hint: "L, R, or S. Type Placeholder if you don't know yet." }
+          - { label: Height, name: height, widget: string, hint: "Example: 5'7\"" }
+          - { label: Weight, name: weight, widget: string, required: false, hint: "Pounds, or Placeholder." }
+          - { label: High school, name: school, widget: string }
+          - { label: School city, name: schoolLocation, widget: string, hint: "Example: Novato, CA" }
+          - { label: Travel team, name: travelTeam, widget: string }
+          - { label: Email, name: email, widget: string }
+          - label: Short intro
+            name: tagline
+            widget: text
+            hint: The sentence under your name at the top of the site.
+          - label: Photo
+            name: photo
+            widget: image
+            required: false
+            choose_url: false
+            media_folder: /img
+            public_folder: /img
+            hint: "A vertical photo works best, under about 5 MB. Leave this empty to keep the Photo coming soon box."
+            media_library:
+              config:
+                max_file_size: 5000000
+          - label: Academics
+            name: academics
+            widget: object
+            hint: GPA on the site comes from here.
+            fields:
+              - label: GPA
+                name: gpa
+                widget: string
+                hint: "Example: 3.85. Type Placeholder if you don't have it yet."
+              - { label: GPA scale, name: gpaScale, widget: string, required: false, hint: "Usually 4.0" }
+              - { label: Test scores, name: testScores, widget: string, required: false, hint: "Example: SAT 1200, or Placeholder." }
+              - { label: Intended major, name: intendedMajor, widget: string, required: false }
+              - { label: Last updated, name: updated, widget: string, required: false, hint: "Example: October 2026" }
+          - label: A note from Colin
+            name: note
+            widget: object
+            fields:
+              - label: This note is still a placeholder
+                name: placeholder
+                widget: boolean
+                default: true
+                hint: Turn this off once the words below are really yours.
+              - label: Note
+                name: text
+                widget: text
+                hint: Two or three sentences about who you are as a player and what you want in a program.
+          - label: Highlight reel
+            name: highlightReel
+            widget: object
+            hint: The big video near the top of the site. YouTube is best. An MP4 must be under 50 MB.
+            fields:
+              - { label: Title, name: title, widget: string, required: false }
+              - label: YouTube link
+                name: youtube
+                widget: string
+                required: false
+                hint: "Paste the video address. Leave blank if you upload a file instead."
+              - label: Or upload an MP4
+                name: file
+                widget: file
+                required: false
+                choose_url: false
+                media_folder: /media/videos
+                public_folder: /media/videos
+                hint: "Under 50 MB. For a longer reel, use YouTube."
+                media_library:
+                  config:
+                    max_file_size: 50000000
+              - { label: Caption, name: caption, widget: text, required: false, hint: "Shown under the reel." }
+          - label: Honors
+            name: honors
+            widget: list
+            summary: "{{title}}"
+            collapsed: true
+            fields:
+              - { label: Title, name: title, widget: string, hint: "Example: Freshman Team MVP" }
+              - { label: School or team, name: org, widget: string }
+              - { label: Season, name: season, widget: string, required: false, hint: "Example: 2026" }
+              - label: Show this in the gold banner
+                name: featured
+                widget: boolean
+                default: false
+                hint: Turn on for the one honor that should sit under your name.
+          - label: At a glance
+            name: glance
+            widget: list
+            summary: "{{value}} {{label}}"
+            collapsed: true
+            hint: The row of big numbers under the photo.
+            fields:
+              - { label: Big text, name: value, widget: string, hint: "Example: .408 or 42 K" }
+              - { label: Small label, name: label, widget: string, hint: "Example: AVG" }
+              - label: Highlight this one
+                name: highlight
+                widget: boolean
+                required: false
+                default: false
+          - label: Pitching numbers
+            name: metrics
+            widget: list
+            summary: "{{label}}: {{value}}"
+            collapsed: true
+            fields:
+              - { label: Label, name: label, widget: string, hint: "Example: Fastball Velo" }
+              - { label: Value, name: value, widget: string, hint: "Example: 75" }
+              - { label: Unit, name: unit, widget: string, required: false, hint: "Example: mph. Leave blank if there is no unit." }
+              - { label: Note, name: note, widget: string, required: false }
+              - label: This number is a placeholder
+                name: placeholder
+                widget: boolean
+                required: false
+                default: false
+          - label: Pitches
+            name: arsenal
+            widget: list
+            summary: "{{pitch}}"
+            collapsed: true
+            fields:
+              - { label: Pitch, name: pitch, widget: string }
+              - { label: Velo, name: velo, widget: string, required: false, hint: "Example: 68-72, or Placeholder." }
+              - { label: Note, name: note, widget: string, required: false }
+          - label: Coaches
+            name: coaches
+            widget: list
+            summary: "{{role}}"
+            collapsed: true
+            fields:
+              - { label: Role, name: role, widget: string, hint: "Example: High School Coach" }
+              - { label: Name, name: name, widget: string }
+              - { label: Team, name: team, widget: string, required: false }
+              - { label: Email, name: email, widget: string, required: false }
+              - { label: Phone, name: phone, widget: string, required: false }
+              - label: Quote
+                name: quote
+                widget: text
+                required: false
+                hint: Shows in Coach References when this is filled in.
+              - label: Quote is still a placeholder
+                name: placeholder
+                widget: boolean
+                required: false
+                default: false
