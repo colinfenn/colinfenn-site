@@ -1,0 +1,61 @@
+:root { color-scheme: light; }
+body {
+  margin: 0;
+  background: #0b1f3a;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+.admin-help {
+  color: #fff;
+  padding: 16px 18px 14px;
+  max-width: 40rem;
+}
+.admin-help h1 {
+  margin: 0 0 6px;
+  font-size: 1.35rem;
+  line-height: 1.2;
+}
+.admin-help p {
+  margin: 0;
+  color: #d6deea;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+#nc-root {
+  background: #fff;
+  min-height: 100vh;
+}
+/* 16px keeps iOS from zooming the page when a field is focused. */
+#nc-root input,
+#nc-root textarea,
+#nc-root select {
+  font-size: 16px !important;
+}
+#nc-root button {
+  min-height: 44px;
+}
+/* Decap's editor is hard-coded to 800px wide. Pull it in so a phone
+   can reach Publish and Add without sliding the page sideways. */
+@media (max-width: 900px) {
+  #nc-root [class*="EditorContainer"],
+  #nc-root [class*="ToolbarContainer"],
+  #nc-root [class*="NoPreviewContainer"],
+  #nc-root [class*="AppMainContainer"] {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  #nc-root [class*="ToolbarContainer"] {
+    width: 100% !important;
+  }
+  #nc-root [class*="EditorContainer"] {
+    width: 100% !important;
+  }
+  #nc-root [class*="ControlPaneContainer"],
+  #nc-root [class*="ControlContainer"] {
+    max-width: 100% !important;
+  }
+  #nc-root input,
+  #nc-root textarea,
+  #nc-root select {
+    max-width: 100%;
+  }
+}

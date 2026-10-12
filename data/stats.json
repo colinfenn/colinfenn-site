@@ -1,0 +1,34 @@
+{
+  "tables": [
+    {
+      "title": "Hitting",
+      "example": false,
+      "columns": [
+        { "key": "season", "label": "Season" },
+        { "key": "team", "label": "Team" },
+        { "key": "avg", "label": "AVG", "title": "Batting average" },
+        { "key": "slg", "label": "SLG", "title": "Slugging percentage" },
+        { "key": "ops", "label": "OPS", "title": "On-base plus slugging" },
+        { "key": "cpct", "label": "C%", "title": "Contact percentage" }
+      ],
+      "rows": [
+        { "season": "2026", "team": "San Marin HS (Freshman)", "avg": ".408", "slg": ".551", "ops": "1.042", "cpct": "89.80%" }
+      ]
+    },
+    {
+      "title": "Pitching",
+      "example": false,
+      "columns": [
+        { "key": "season", "label": "Season" },
+        { "key": "team", "label": "Team" },
+        { "key": "ip", "label": "IP", "title": "Innings pitched" },
+        { "key": "so", "label": "SO", "title": "Strikeouts" },
+        { "key": "spct", "label": "S%", "title": "Strike percentage" },
+        { "key": "bbIp", "label": "BB/IP", "title": "Walks per inning" }
+      ],
+      "rows": [
+        { "season": "2026", "team": "San Marin HS (Freshman)", "ip": "41.0", "so": "42", "spct": "51.96%", "bbIp": ".585" }
+      ]
+    }
+  ]
+}

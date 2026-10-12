@@ -1,0 +1,19 @@
+# Static site. Nothing is compiled.
+# An empty command in this file is ignored and a command set in the Netlify
+# UI would still run, so `true` is the no-op that keeps deploys from trying
+# to build. The published files are the repository root (index.html lives here).
+[build]
+  publish = "."
+  command = "true"
+
+# Edited JSON should show up as soon as a deploy finishes.
+[[headers]]
+  for = "/data/*"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/admin/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "public, max-age=0, must-revalidate"

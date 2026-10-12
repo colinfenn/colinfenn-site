@@ -1,0 +1,98 @@
+{
+  "categories": [
+    "Pitching",
+    "Hitting",
+    "Fielding",
+    "Workouts/Training",
+    "Game Highlights"
+  ],
+  "videos": [
+    {
+      "title": "Sinker (Placeholder)",
+      "type": "placeholder",
+      "url": "",
+      "pitch": "Sinker",
+      "angle": "Open side",
+      "setting": "Bullpen",
+      "date": "TBD",
+      "caption": "Video coming soon.",
+      "category": "Pitching"
+    },
+    {
+      "title": "Slider (Placeholder)",
+      "type": "placeholder",
+      "url": "",
+      "pitch": "Slider",
+      "angle": "Behind mound",
+      "setting": "Game",
+      "date": "TBD",
+      "caption": "Video coming soon.",
+      "category": "Pitching"
+    },
+    {
+      "title": "Curveball (Placeholder)",
+      "type": "placeholder",
+      "url": "",
+      "pitch": "Curveball",
+      "angle": "Open side",
+      "setting": "Bullpen",
+      "date": "TBD",
+      "caption": "Video coming soon.",
+      "category": "Pitching"
+    },
+    {
+      "title": "Changeup (Placeholder)",
+      "type": "placeholder",
+      "url": "",
+      "pitch": "Changeup",
+      "angle": "Behind mound",
+      "setting": "Game",
+      "date": "TBD",
+      "caption": "Video coming soon.",
+      "category": "Pitching"
+    },
+    {
+      "title": "Cutter (Placeholder)",
+      "type": "placeholder",
+      "url": "",
+      "pitch": "Cutter",
+      "angle": "Open side",
+      "setting": "Bullpen",
+      "date": "TBD",
+      "caption": "Video coming soon.",
+      "category": "Pitching"
+    },
+    {
+      "title": "Hitting (Placeholder)",
+      "category": "Hitting",
+      "type": "placeholder",
+      "url": "",
+      "date": "TBD",
+      "caption": "Video coming soon."
+    },
+    {
+      "title": "Fielding (Placeholder)",
+      "category": "Fielding",
+      "type": "placeholder",
+      "url": "",
+      "date": "TBD",
+      "caption": "Video coming soon."
+    },
+    {
+      "title": "Workouts/Training (Placeholder)",
+      "category": "Workouts/Training",
+      "type": "placeholder",
+      "url": "",
+      "date": "TBD",
+      "caption": "Video coming soon."
+    },
+    {
+      "title": "Game Highlights (Placeholder)",
+      "category": "Game Highlights",
+      "type": "placeholder",
+      "url": "",
+      "date": "TBD",
+      "caption": "Video coming soon."
+    }
+  ]
+}
