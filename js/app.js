@@ -58,7 +58,7 @@
   get("data/profile.json").then(p => {
     const dash = parts => parts.filter(v => v && !isPh(v)).join(" – ");
     const idLine = dash([p.name, p.position, p.gradYear ? "Class of " + p.gradYear : ""]);
-    const teamsLine = dash([schoolShort(p.school), p.travelTeam]);
+    const teamsLine = [schoolShort(p.school), p.travelTeam].filter(v => v && !isPh(v)).join(", ");
     const id = $("#id-line");
     if (id && idLine) id.textContent = idLine;
     const teams = $("#teams-line");
