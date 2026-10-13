@@ -293,11 +293,16 @@
     };
   }
 
+  function isWebLink(url) {
+    return /^https:\/\/\S+$/i.test(String(url || "").trim());
+  }
+
   function validateEntry(entry) {
     if (!CATEGORIES.includes(entry.category)) return "Pick a category.";
     if (!entry.title) return "Add a title.";
     if (entry.type === "youtube" && !youtubeId(entry.url)) return "That doesn't look like a YouTube link. Open the video and copy the address.";
-    if (entry.type !== "youtube" && entry.type !== "mp4") return "Choose a video or paste a YouTube link.";
+    if (entry.type === "link" && !isWebLink(entry.url)) return "That doesn't look like a link. Open the video and copy the address.";
+    if (entry.type !== "youtube" && entry.type !== "mp4" && entry.type !== "link") return "Choose a video or paste a YouTube link.";
     if (entry.type === "mp4" && !entry.url) return "Choose a video first.";
     return "";
   }
@@ -437,14 +442,64 @@
     return "/repos/" + REPO + suffix;
   }
 
+  function cacheBust(path) {
+    return path + (path.indexOf("?") >= 0 ? "&" : "?") + "t=" + Date.now();
+  }
+
   async function readVideos(request) {
-    const file = await request("GET", repoPath("/contents/data/videos.json?ref=" + BRANCH));
+    const file = await request("GET", cacheBust(repoPath("/contents/data/videos.json?ref=" + BRANCH)));
     return JSON.parse(base64ToUtf8(file.content));
+  }
+
+  function alreadySaved(data, action) {
+    const list = (data && data.videos) || [];
+    if (!action) return false;
+    if (action.kind === "add") {
+      const url = action.entry && action.entry.url;
+      return !!(url && list.some(video => video.url === url));
+    }
+    if (action.kind === "delete") return !list.some(video => videoKey(video) === action.key);
+    if (action.kind === "update") return list.some(video => videoKey(video) === videoKey(action.entry));
+    return false;
+  }
+
+  async function saveFresh(request, action, extras, decorate) {
+    let lastErr;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      const data = await readVideos(request);
+      if (alreadySaved(data, action)) {
+        const next = cloneData(data);
+        const entry = action.entry || {};
+        return {
+          ok: true,
+          data: next,
+          json: serializeVideos(next),
+          message: action.kind === "add" ? "Post video: " + (entry.title || "") : "Saved",
+          removePaths: [],
+          removedUrl: "",
+          alreadySaved: true
+        };
+      }
+      let plan = prepareSave(data, action);
+      if (!plan.ok) throw Object.assign(new Error(plan.error), { friendly: plan.error });
+      if (decorate) {
+        const decorated = decorate(plan);
+        if (decorated) plan = decorated;
+      }
+      try {
+        await commitChanges(request, plan, extras);
+        return plan;
+      } catch (err) {
+        lastErr = err;
+        if (!(err && err.conflict) || attempt === 3) throw err;
+      }
+    }
+    throw lastErr;
   }
 
   async function commitChanges(request, plan, extras) {
     const extra = extras || {};
-    const ref = await request("GET", repoPath("/git/ref/heads/" + BRANCH));
+    const ref = await request("GET", cacheBust(repoPath("/git/ref/heads/" + BRANCH)));
     const parentSha = ref.object.sha;
     const parent = await request("GET", repoPath("/git/commits/" + parentSha));
     const tree = [];
@@ -505,6 +560,9 @@
   }
 
   function mediaHtml(video) {
+    if (video.type === "link" && isWebLink(video.url)) {
+      return '<a class="play link" href="' + esc(video.url) + '" target="_blank" rel="noopener noreferrer">Open clip</a>';
+    }
     const id = youtubeId(video.url);
     if (id && video.type !== "mp4") {
       return '<button type="button" class="play" data-play="youtube" data-id="' + esc(id) + '"><img alt="' + esc(video.title || "Video") + '" src="https://i.ytimg.com/vi/' + esc(id) + '/hqdefault.jpg"></button>';
@@ -553,6 +611,7 @@
     publicUrl,
     mediaPathFromUrl,
     youtubeId,
+    isWebLink,
     tooBig,
     formatBytes,
     esc,
@@ -574,6 +633,7 @@
     utf8ToBase64,
     base64ToUtf8,
     readVideos,
-    commitChanges
+    commitChanges,
+    saveFresh
   };
 });

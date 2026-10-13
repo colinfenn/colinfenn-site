@@ -238,17 +238,19 @@ test("commit sends the video blob, then videos.json, and can delete a file", asy
   const calls = [];
   const sha = await L.commitChanges(async (method, url, body) => {
     calls.push({ method, url, body });
-    if (url.endsWith("/git/ref/heads/main") && method === "GET") return { object: { sha: "parent" } };
-    if (url.endsWith("/git/commits/parent")) return { tree: { sha: "tree0" } };
-    if (url.endsWith("/git/blobs")) return { sha: "blob-" + calls.length };
-    if (url.endsWith("/git/trees")) return { sha: "tree1" };
-    if (url.endsWith("/git/commits") && method === "POST") return { sha: "commit1" };
+    const apiPath = url.split("?")[0];
+    if (apiPath.endsWith("/git/ref/heads/main") && method === "GET") return { object: { sha: "parent" } };
+    if (apiPath.endsWith("/git/commits/parent")) return { tree: { sha: "tree0" } };
+    if (apiPath.endsWith("/git/blobs")) return { sha: "blob-" + calls.length };
+    if (apiPath.endsWith("/git/trees")) return { sha: "tree1" };
+    if (apiPath.endsWith("/git/commits") && method === "POST") return { sha: "commit1" };
     if (method === "PATCH") return { ref: "refs/heads/main" };
     throw new Error("unexpected " + method + " " + url);
   }, plan, { mediaPath: "media/videos/fastball.mp4", mediaBase64: "AAAA" });
 
   assert.equal(sha, "commit1");
-  assert.deepEqual(calls.map(call => call.method + " " + call.url), [
+  assert.match(calls[0].url, /[?&]t=\d+/);
+  assert.deepEqual(calls.map(call => call.method + " " + call.url.split("?")[0]), [
     "GET /repos/colinfenn/colinfenn-site/git/ref/heads/main",
     "GET /repos/colinfenn/colinfenn-site/git/commits/parent",
     "POST /repos/colinfenn/colinfenn-site/git/blobs",
@@ -282,9 +284,144 @@ test("a rejected ref update is marked so the app can retry", async () => {
   }, plan, {}), err => err.conflict === true && err.status === 422);
 });
 
+function gitHubStub(existing, options) {
+  const opts = options || {};
+  const state = { reads: 0, patches: 0, commits: 0 };
+  const request = async (method, url) => {
+    if (method === "GET" && url.includes("/contents/data/videos.json")) {
+      assert.match(url, /ref=main/);
+      assert.match(url, /[?&]t=\d+/);
+      const body = opts.bodies ? opts.bodies[state.reads] : existing;
+      state.reads += 1;
+      return { content: Buffer.from(JSON.stringify(body), "utf8").toString("base64") };
+    }
+    if (method === "GET" && url.includes("/git/ref/")) {
+      assert.match(url, /[?&]t=\d+/);
+      return { object: { sha: "parent-" + state.reads } };
+    }
+    if (method === "GET" && url.includes("/git/commits/")) return { tree: { sha: "tree0" } };
+    const apiPath = url.split("?")[0];
+    if (apiPath.endsWith("/git/blobs")) return { sha: "blob" };
+    if (apiPath.endsWith("/git/trees")) return { sha: "tree1" };
+    if (method === "POST" && apiPath.endsWith("/git/commits")) {
+      state.commits += 1;
+      return { sha: "commit-" + state.commits };
+    }
+    if (method === "PATCH") {
+      state.patches += 1;
+      if (opts.patchStatus) {
+        const status = opts.patchStatus(state.patches);
+        if (status) {
+          const err = new Error("Update is not a fast forward");
+          err.status = status;
+          throw err;
+        }
+      }
+      return { ref: "refs/heads/main" };
+    }
+    throw new Error("unexpected " + method + " " + url);
+  };
+  return { request, state };
+}
+
+test("a GameChanger link saves onto a fresh list and retries a stale SHA", async () => {
+  const existing = JSON.parse(fs.readFileSync(path.join(__dirname, "../data/videos.json"), "utf8"));
+  assert.equal(existing.videos.length, 5);
+  const entry = L.buildEntry({
+    title: "Slider K GameChanger",
+    type: "link",
+    url: "https://web.gc.com/teams/san-marin/video/slider-k",
+    category: "Pitching",
+    tags: ["Slider", "K", "Game"],
+    date: "October 13, 2026",
+    caption: "GameChanger link"
+  });
+  assert.equal(L.validateEntry(entry), "");
+  assert.match(L.mediaHtml(entry), /href="https:\/\/web\.gc\.com\/teams\/san-marin\/video\/slider-k"/);
+  assert.match(L.validateEntry(L.buildEntry({
+    title: "Nope",
+    type: "link",
+    url: "not-a-url",
+    category: "Pitching",
+    date: "October 13, 2026"
+  })), /link/i);
+  const uploader = fs.readFileSync(path.join(__dirname, "../admin/app.js"), "utf8");
+  assert.match(uploader, /cache:\s*"no-store"/);
+  assert.match(uploader, /saveFresh/);
+
+  const stub = gitHubStub(existing, {
+    patchStatus: attempt => (attempt === 1 ? 422 : 0)
+  });
+  const plan = await L.saveFresh(stub.request, { kind: "add", entry }, {});
+  assert.equal(stub.state.reads, 2);
+  assert.equal(stub.state.patches, 2);
+  assert.equal(plan.alreadySaved, undefined);
+  assert.equal(plan.data.videos[0].url, entry.url);
+  assert.equal(plan.data.videos[0].type, "link");
+  assert.deepEqual(plan.data.videos[0].tags, ["Slider", "K", "Game"]);
+  assert.equal(plan.data.videos.filter(video => video.url === entry.url).length, 1);
+  existing.videos.forEach(video => {
+    assert.equal(plan.data.videos.filter(saved => saved.url === video.url).length, 1);
+  });
+  assert.equal(JSON.parse(plan.json).videos.length, 6);
+});
+
+test("a conflict retry does not post the clip twice when the first attempt landed", async () => {
+  const existing = JSON.parse(fs.readFileSync(path.join(__dirname, "../data/videos.json"), "utf8"));
+  const entry = L.buildEntry({
+    title: "Slider K GameChanger",
+    type: "link",
+    url: "https://web.gc.com/teams/san-marin/video/slider-k",
+    category: "Pitching",
+    tags: ["Slider", "K", "Game"],
+    date: "October 13, 2026",
+    caption: ""
+  });
+  const landed = {
+    categories: existing.categories,
+    videos: [entry].concat(existing.videos)
+  };
+  const stub = gitHubStub(existing, {
+    bodies: [existing, landed],
+    patchStatus: () => 422
+  });
+  const plan = await L.saveFresh(stub.request, { kind: "add", entry }, {});
+  assert.equal(stub.state.reads, 2);
+  assert.equal(stub.state.patches, 1);
+  assert.equal(stub.state.commits, 1);
+  assert.equal(plan.alreadySaved, true);
+  assert.equal(plan.data.videos.filter(video => video.url === entry.url).length, 1);
+  assert.equal(plan.data.videos.length, existing.videos.length + 1);
+});
+
+test("three stale branch updates give up instead of looping", async () => {
+  const existing = JSON.parse(fs.readFileSync(path.join(__dirname, "../data/videos.json"), "utf8"));
+  const entry = L.buildEntry({
+    title: "Slider K GameChanger",
+    type: "link",
+    url: "https://web.gc.com/teams/san-marin/video/slider-k",
+    category: "Pitching",
+    tags: ["Slider", "K", "Game"],
+    date: "October 13, 2026",
+    caption: ""
+  });
+  const stub = gitHubStub(existing, { patchStatus: () => 409 });
+  await assert.rejects(
+    () => L.saveFresh(stub.request, { kind: "add", entry }, {}),
+    err => err.conflict === true && err.status === 409
+  );
+  assert.equal(stub.state.reads, 3);
+  assert.equal(stub.state.patches, 3);
+});
+
 test("reading videos.json decodes GitHub's base64 content", async () => {
   const raw = fs.readFileSync(path.join(__dirname, "../data/videos.json"), "utf8");
-  const data = await L.readVideos(async () => ({ content: Buffer.from(raw, "utf8").toString("base64") }));
+  let requested = "";
+  const data = await L.readVideos(async (method, url) => {
+    requested = url;
+    return { content: Buffer.from(raw, "utf8").toString("base64") };
+  });
+  assert.match(requested, /\/contents\/data\/videos\.json\?ref=main&t=\d+/);
   assert.deepEqual(data.categories, ["Pitching", "Hitting", "Fielding", "Training/Workouts"]);
   assert.deepEqual(data.videos.map(video => ({
     title: video.title,
@@ -295,6 +432,24 @@ test("reading videos.json decodes GitHub's base64 content", async () => {
     caption: video.caption,
     category: video.category
   })), [
+    {
+      title: "Got the 3 hitter swinging",
+      url: "/media/videos/got-the-3-hitter-swinging-20261013-124941.mp4",
+      tags: ["Sinker", "K", "Game"],
+      thumbnail: "/media/videos/got-the-3-hitter-swinging-20261013-124941.jpg",
+      date: "October 13, 2026",
+      caption: "Struck out the side, Top 1st, Casa Grande @ SM",
+      category: "Pitching"
+    },
+    {
+      title: "K swinging vs Casa Grande @ SM",
+      url: "/media/videos/slider-k-game-20261013-124104.mp4",
+      tags: ["Slider", "K", "Game"],
+      thumbnail: "/media/videos/slider-k-game-20261013-124104.jpg",
+      date: "October 13, 2026",
+      caption: "Struck out Casa Grande’s lefty leadoff hitter with a slider",
+      category: "Pitching"
+    },
     {
       title: "Line drive single",
       url: "/media/videos/single-20261012-214250.mp4",
@@ -377,11 +532,12 @@ test("a poster image is committed next to the video", async () => {
   const calls = [];
   await L.commitChanges(async (method, url, body) => {
     calls.push({ method, url, body });
-    if (url.endsWith("/git/ref/heads/main") && method === "GET") return { object: { sha: "parent" } };
-    if (url.endsWith("/git/commits/parent")) return { tree: { sha: "tree0" } };
-    if (url.endsWith("/git/blobs")) return { sha: "blob-" + calls.length };
-    if (url.endsWith("/git/trees")) return { sha: "tree1" };
-    if (url.endsWith("/git/commits") && method === "POST") return { sha: "commit1" };
+    const apiPath = url.split("?")[0];
+    if (apiPath.endsWith("/git/ref/heads/main") && method === "GET") return { object: { sha: "parent" } };
+    if (apiPath.endsWith("/git/commits/parent")) return { tree: { sha: "tree0" } };
+    if (apiPath.endsWith("/git/blobs")) return { sha: "blob-" + calls.length };
+    if (apiPath.endsWith("/git/trees")) return { sha: "tree1" };
+    if (apiPath.endsWith("/git/commits") && method === "POST") return { sha: "commit1" };
     if (method === "PATCH") return { ref: "refs/heads/main" };
     throw new Error("unexpected " + method + " " + url);
   }, plan, { mediaPath: "media/videos/sinker.mp4", mediaBase64: "AAAA", thumbnailPath: "media/videos/sinker.jpg", thumbnailBase64: "BBBB" });
