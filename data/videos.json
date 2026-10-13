@@ -7,20 +7,25 @@
   ],
   "videos": [
     {
-      "title": "Single",
+      "title": "Line drive single",
       "type": "mp4",
       "url": "/media/videos/single-20261012-214250.mp4",
-      "tags": ["Single"],
+      "tags": [
+        "Single"
+      ],
       "thumbnail": "/media/videos/single-20261012-214250.jpg",
       "date": "October 12, 2026",
-      "caption": "Blah blah",
+      "caption": "Single to RF vs 17u pitcher",
       "category": "Hitting"
     },
     {
       "title": "Curveball · Game",
       "type": "mp4",
       "url": "/media/videos/curveball-game-20261012-204654.mov",
-      "tags": ["Curveball", "Game"],
+      "tags": [
+        "Curveball",
+        "Game"
+      ],
       "thumbnail": "/media/videos/curveball-game-20261012-204654.jpg",
       "date": "October 12, 2026",
       "caption": "Finish curveball lefty lefty",
@@ -30,7 +35,9 @@
       "title": "Pitching",
       "type": "mp4",
       "url": "/media/videos/pitching-20261012-195823.mp4",
-      "tags": ["K"],
+      "tags": [
+        "K"
+      ],
       "thumbnail": "/media/videos/pitching-20261012-195823.jpg",
       "date": "October 12, 2026",
       "caption": "This is a test video",
