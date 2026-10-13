@@ -80,7 +80,7 @@ test("speed stays on pitching clips and is dropped everywhere else", () => {
   const entry = L.buildEntry({
     title: "Single · Game",
     type: "youtube",
-    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    url: "https://www.youtube.com/watch?v=abcdefghijk",
     category: "Hitting",
     tags: ["Single", "Game", "Sinker"],
     velo: "75 mph",
@@ -96,7 +96,7 @@ test("speed stays on pitching clips and is dropped everywhere else", () => {
   assert.equal(saved.data.videos.length, 1);
   assert.equal(saved.data.videos[0].category, "Hitting");
   assert.equal(saved.data.videos[0].velo, undefined);
-  assert.equal(L.youtubeId(saved.data.videos[0].url), "dQw4w9WgXcQ");
+  assert.equal(L.youtubeId(saved.data.videos[0].url), "abcdefghijk");
 });
 
 test("delete removes a repo video and leaves YouTube files alone", () => {
@@ -104,7 +104,7 @@ test("delete removes a repo video and leaves YouTube files alone", () => {
     categories: L.CATEGORIES.slice(),
     videos: [
       { title: "Phone clip", type: "mp4", url: "/media/videos/phone-clip.mp4", date: "October 12, 2026", caption: "Hi", category: "Hitting" },
-      { title: "Link", type: "youtube", url: "https://youtu.be/dQw4w9WgXcQ", date: "October 12, 2026", caption: "", category: "Hitting" }
+      { title: "Link", type: "youtube", url: "https://youtu.be/abcdefghijk", date: "October 12, 2026", caption: "", category: "Hitting" }
     ]
   };
   const fileDelete = L.prepareSave(data, { kind: "delete", key: L.videoKey(data.videos[0]) });
@@ -286,7 +286,44 @@ test("reading videos.json decodes GitHub's base64 content", async () => {
   const raw = fs.readFileSync(path.join(__dirname, "../data/videos.json"), "utf8");
   const data = await L.readVideos(async () => ({ content: Buffer.from(raw, "utf8").toString("base64") }));
   assert.deepEqual(data.categories, ["Pitching", "Hitting", "Fielding", "Training/Workouts"]);
-  assert.deepEqual(data.videos, []);
+  assert.deepEqual(data.videos.map(video => ({
+    title: video.title,
+    url: video.url,
+    tags: video.tags,
+    thumbnail: video.thumbnail,
+    date: video.date,
+    caption: video.caption,
+    category: video.category
+  })), [
+    {
+      title: "Single",
+      url: "/media/videos/single-20261012-214250.mp4",
+      tags: ["Single"],
+      thumbnail: "/media/videos/single-20261012-214250.jpg",
+      date: "October 12, 2026",
+      caption: "Blah blah",
+      category: "Hitting"
+    },
+    {
+      title: "Curveball · Game",
+      url: "/media/videos/curveball-game-20261012-204654.mov",
+      tags: ["Curveball", "Game"],
+      thumbnail: "/media/videos/curveball-game-20261012-204654.jpg",
+      date: "October 12, 2026",
+      caption: "Finish curveball lefty lefty",
+      category: "Pitching"
+    },
+    {
+      title: "Pitching",
+      url: "/media/videos/pitching-20261012-195823.mp4",
+      tags: ["K"],
+      thumbnail: "/media/videos/pitching-20261012-195823.jpg",
+      date: "October 12, 2026",
+      caption: "This is a test video",
+      category: "Pitching"
+    }
+  ]);
+  assert.equal(data.videos.some(video => /placeholder/i.test(video.title)), false);
 });
 
 test("no category has a camera-angle tag group", () => {
@@ -304,7 +341,7 @@ test("custom tags are trimmed, deduped, capped, and saved with the video", () =>
   tags = L.addCustomTag(tags, "x".repeat(50));
   assert.equal(tags[1].length, L.MAX_CUSTOM_TAG);
   for (const category of L.CATEGORIES) {
-    const entry = L.buildEntry({ title: "T", type: "youtube", url: "https://youtu.be/dQw4w9WgXcQ", category, tags: [" vs. lefty ", "VS. LEFTY"], date: "October 12, 2026" });
+    const entry = L.buildEntry({ title: "T", type: "youtube", url: "https://youtu.be/abcdefghijk", category, tags: [" vs. lefty ", "VS. LEFTY"], date: "October 12, 2026" });
     const expected = category === "Hitting" ? ["vs. Lefty"] : ["vs. lefty"];
     assert.deepEqual(entry.tags, expected);
     assert.ok(L.cardTags(entry).some(tag => tag.toLowerCase() === "vs. lefty"));
