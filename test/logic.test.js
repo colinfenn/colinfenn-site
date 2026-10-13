@@ -324,6 +324,24 @@ function gitHubStub(existing, options) {
   return { request, state };
 }
 
+test("GitHub requests do not send Cache-Control or Pragma", () => {
+  const uploader = fs.readFileSync(path.join(__dirname, "../admin/app.js"), "utf8");
+  const allowed = new Set(["accept", "authorization", "content-type", "if-match", "if-none-match", "x-github-api-version", "x-requested-with"]);
+  const names = [];
+  for (const match of uploader.matchAll(/setRequestHeader\(\s*["']([^"']+)["']/g)) names.push(match[1]);
+  const fetchHeaders = uploader.match(/fetch\("https:\/\/api\.github\.com"[\s\S]*?headers:\s*\{([^}]*)\}/);
+  assert.ok(fetchHeaders, "GitHub fetch headers");
+  for (const match of fetchHeaders[1].matchAll(/(?:["']([^"']+)["']|([A-Za-z][A-Za-z-]*))\s*:/g)) names.push(match[1] || match[2]);
+  assert.ok(names.length > 0);
+  names.forEach(name => {
+    const lower = name.toLowerCase();
+    assert.equal(lower === "cache-control" || lower === "pragma", false, name);
+    assert.equal(allowed.has(lower), true, name);
+  });
+  assert.match(uploader, /cache:\s*"no-store"/);
+  assert.doesNotMatch(uploader, /["']Cache-Control["']|["']Pragma["']/);
+});
+
 test("a GameChanger link saves onto a fresh list and retries a stale SHA", async () => {
   const existing = JSON.parse(fs.readFileSync(path.join(__dirname, "../data/videos.json"), "utf8"));
   assert.equal(existing.videos.length, 5);

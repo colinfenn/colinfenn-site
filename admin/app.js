@@ -44,8 +44,7 @@
         headers: {
           Accept: "application/vnd.github+json",
           Authorization: "Bearer " + state.token,
-          "X-GitHub-Api-Version": "2022-11-28",
-          "Cache-Control": "no-cache"
+          "X-GitHub-Api-Version": "2022-11-28"
         },
         signal: controller.signal
       }).then(async response => {
