@@ -241,6 +241,9 @@ test("commit sends the video blob, then videos.json, and can delete a file", asy
     const apiPath = url.split("?")[0];
     if (apiPath.endsWith("/git/ref/heads/main") && method === "GET") return { object: { sha: "parent" } };
     if (apiPath.endsWith("/git/commits/parent")) return { tree: { sha: "tree0" } };
+    if (method === "GET" && apiPath.includes("/git/trees/")) {
+      return { tree: [{ path: "media/videos/old.mp4", type: "blob" }, { path: "data/videos.json", type: "blob" }] };
+    }
     if (apiPath.endsWith("/git/blobs")) return { sha: "blob-" + calls.length };
     if (apiPath.endsWith("/git/trees")) return { sha: "tree1" };
     if (apiPath.endsWith("/git/commits") && method === "POST") return { sha: "commit1" };
@@ -255,19 +258,20 @@ test("commit sends the video blob, then videos.json, and can delete a file", asy
     "GET /repos/colinfenn/colinfenn-site/git/commits/parent",
     "POST /repos/colinfenn/colinfenn-site/git/blobs",
     "POST /repos/colinfenn/colinfenn-site/git/blobs",
+    "GET /repos/colinfenn/colinfenn-site/git/trees/tree0",
     "POST /repos/colinfenn/colinfenn-site/git/trees",
     "POST /repos/colinfenn/colinfenn-site/git/commits",
     "PATCH /repos/colinfenn/colinfenn-site/git/refs/heads/main"
   ]);
   assert.equal(calls[2].body.content, "AAAA");
   assert.equal(L.base64ToUtf8(calls[3].body.content), plan.json);
-  assert.deepEqual(calls[4].body.tree, [
+  assert.deepEqual(calls[5].body.tree, [
     { path: "media/videos/fastball.mp4", mode: "100644", type: "blob", sha: "blob-3" },
     { path: "data/videos.json", mode: "100644", type: "blob", sha: "blob-4" },
     { path: "media/videos/old.mp4", mode: "100644", type: "blob", sha: null }
   ]);
-  assert.deepEqual(calls[5].body.parents, ["parent"]);
-  assert.equal(calls[6].body.sha, "commit1");
+  assert.deepEqual(calls[6].body.parents, ["parent"]);
+  assert.equal(calls[7].body.sha, "commit1");
 });
 
 test("a rejected ref update is marked so the app can retry", async () => {
@@ -281,7 +285,82 @@ test("a rejected ref update is marked so the app can retry", async () => {
     const err = new Error("fast forward");
     err.status = 422;
     throw err;
-  }, plan, {}), err => err.conflict === true && err.status === 422);
+  }, plan, {}), err => err.conflict === true && err.status === 422 && /list changed/.test(L.friendlyError(err)));
+});
+
+test("only a rejected branch update is a conflict; other 422s keep GitHub's message", async () => {
+  const plan = { json: "{}\n", message: "Post video: Link", removePaths: ["media/videos/missing.mp4"] };
+  await assert.rejects(() => L.commitChanges(async (method, url) => {
+    if (method === "GET" && url.includes("/git/ref/")) return { object: { sha: "parent" } };
+    if (method === "GET" && url.includes("/git/commits/")) return { tree: { sha: "tree0" } };
+    if (method === "GET" && url.includes("/git/trees/")) return { tree: [{ path: "data/videos.json", type: "blob" }] };
+    const err = new Error("Validation Failed");
+    err.status = 422;
+    err.errors = [{ resource: "Blob", field: "content", code: "missing_field" }];
+    throw err;
+  }, plan, {}), err => {
+    assert.notEqual(err.conflict, true);
+    assert.equal(err.status, 422);
+    assert.match(L.friendlyError(err), /Validation Failed/);
+    assert.match(L.friendlyError(err), /Blob content missing_field/);
+    assert.doesNotMatch(L.friendlyError(err), /list changed/);
+    return true;
+  });
+
+  const treeErr = Object.assign(new Error("GitRPC::BadObjectState"), { status: 422 });
+  assert.match(L.friendlyError(treeErr), /GitRPC::BadObjectState/);
+  assert.doesNotMatch(L.friendlyError(treeErr), /list changed/);
+
+  await assert.rejects(() => L.commitChanges(async (method, url) => {
+    if (method === "GET" && url.includes("/git/ref/")) return { object: { sha: "parent" } };
+    if (method === "GET" && url.includes("/git/commits/")) return { tree: { sha: "tree0" } };
+    throw new Error("should not post a blob");
+  }, plan, { mediaPath: "media/videos/clip.mp4", mediaBase64: null }), err => err.friendly === "That video didn't come through. Try choosing it again.");
+});
+
+test("a GameChanger link commit writes the list only and skips a missing file", async () => {
+  const existing = JSON.parse(fs.readFileSync(path.join(__dirname, "../data/videos.json"), "utf8"));
+  const entry = L.buildEntry({
+    title: "Sinker · Slider · K · Game",
+    type: "link",
+    url: "https://web.gc.com/teams/san-marin/video/slider-k",
+    category: "Pitching",
+    tags: ["Sinker", "Slider", "K", "Game"],
+    date: "October 13, 2026",
+    caption: "Ordinary caption"
+  });
+  assert.equal(L.validateEntry(entry), "");
+  const plan = L.prepareSave(existing, { kind: "add", entry });
+  plan.removePaths = ["media/videos/does-not-exist.mp4"];
+  const bodies = [];
+  await L.commitChanges(async (method, url, body) => {
+    const apiPath = url.split("?")[0];
+    if (method === "GET" && apiPath.endsWith("/git/ref/heads/main")) return { object: { sha: "parent" } };
+    if (method === "GET" && apiPath.includes("/git/commits/")) return { tree: { sha: "tree0" } };
+    if (method === "GET" && apiPath.includes("/git/trees/")) {
+      return { tree: existing.videos.map(video => ({ path: video.url.replace(/^\//, ""), type: "blob" })).concat([{ path: "data/videos.json", type: "blob" }]) };
+    }
+    if (method === "POST" && apiPath.endsWith("/git/blobs")) {
+      bodies.push(body);
+      return { sha: "blob-" + bodies.length };
+    }
+    if (method === "POST" && apiPath.endsWith("/git/trees")) {
+      bodies.push(body);
+      assert.equal(body.tree.some(item => item.sha === null), false);
+      assert.deepEqual(body.tree.map(item => item.path), ["data/videos.json"]);
+      const saved = JSON.parse(L.base64ToUtf8(bodies[0].content));
+      assert.equal(saved.videos[0].url, entry.url);
+      assert.equal(saved.videos[0].type, "link");
+      assert.deepEqual(saved.videos[0].tags, ["Sinker", "Slider", "K", "Game"]);
+      existing.videos.forEach(video => {
+        assert.equal(saved.videos.filter(item => item.url === video.url).length, 1);
+      });
+      return { sha: "tree1" };
+    }
+    if (method === "POST" && apiPath.endsWith("/git/commits")) return { sha: "commit1" };
+    if (method === "PATCH") return { ref: "refs/heads/main" };
+    throw new Error("unexpected " + method + " " + url);
+  }, plan, { thumbnailPath: "media/videos/empty.jpg", thumbnailBase64: null });
 });
 
 function gitHubStub(existing, options) {

@@ -395,6 +395,18 @@
     return { ok: false, error: "That didn't work. Try again." };
   }
 
+  function githubDetail(err) {
+    const parts = [];
+    const message = String((err && err.message) || "").replace(/\s+/g, " ").trim();
+    if (message && message !== "Save failed") parts.push(message);
+    const errors = err && Array.isArray(err.errors) ? err.errors : [];
+    errors.forEach(item => {
+      const bit = [item && item.resource, item && item.field, item && item.code].filter(Boolean).join(" ");
+      if (bit) parts.push(bit);
+    });
+    return parts.join(" — ") || "GitHub rejected that save.";
+  }
+
   function friendlyError(err) {
     const status = err && err.status;
     const message = (err && err.message) || "";
@@ -405,7 +417,8 @@
     if (message === "too-big") return "That video is over 50 MB, so it can't go straight on the site. Upload it to YouTube (unlisted is fine), then paste the link here.";
     if (status === 401) return "Please log in again.";
     if (status === 403 || status === 404) return "GitHub didn't allow that save. Ask JT to check that your GitHub login can edit the site.";
-    if ((err && err.conflict) || status === 422) return "That didn't save because the list changed. Tap the button again.";
+    if (err && err.conflict) return "That didn't save because the list changed. Tap the button again.";
+    if (status === 422 || status === 409) return githubDetail(err);
     if (status === 0 || message === "network") return "Couldn't reach GitHub. Check your Wi-Fi and try again.";
     if (/size|too large|payload|blob/i.test(message)) return "That video is too big to send from the phone. Put it on YouTube and paste the link.";
     return "That didn't save. Check your Wi-Fi and try again.";
@@ -504,23 +517,46 @@
     const parent = await request("GET", repoPath("/git/commits/" + parentSha));
     const tree = [];
     if (extra.mediaPath) {
+      if (typeof extra.mediaBase64 !== "string" || !extra.mediaBase64) {
+        throw Object.assign(new Error("That video didn't come through. Try choosing it again."), {
+          friendly: "That video didn't come through. Try choosing it again."
+        });
+      }
       const blob = await request("POST", repoPath("/git/blobs"), {
         content: extra.mediaBase64,
         encoding: "base64"
       }, extra.onProgress);
+      if (!blob || typeof blob.sha !== "string" || !blob.sha) {
+        throw Object.assign(new Error("GitHub did not accept the video file."), {
+          friendly: "GitHub did not accept the video file."
+        });
+      }
       tree.push({ path: extra.mediaPath, mode: "100644", type: "blob", sha: blob.sha });
     }
-    if (extra.thumbnailPath) {
+    if (extra.thumbnailPath && typeof extra.thumbnailBase64 === "string" && extra.thumbnailBase64) {
       const thumbBlob = await request("POST", repoPath("/git/blobs"), {
         content: extra.thumbnailBase64,
         encoding: "base64"
       });
-      tree.push({ path: extra.thumbnailPath, mode: "100644", type: "blob", sha: thumbBlob.sha });
+      if (thumbBlob && typeof thumbBlob.sha === "string" && thumbBlob.sha) {
+        tree.push({ path: extra.thumbnailPath, mode: "100644", type: "blob", sha: thumbBlob.sha });
+      }
+    }
+    const jsonBase64 = utf8ToBase64(plan.json);
+    if (typeof jsonBase64 !== "string" || !jsonBase64) {
+      throw Object.assign(new Error("The video list could not be prepared."), {
+        friendly: "The video list could not be prepared."
+      });
     }
     const jsonBlob = await request("POST", repoPath("/git/blobs"), {
-      content: utf8ToBase64(plan.json),
+      content: jsonBase64,
       encoding: "base64"
     });
+    if (!jsonBlob || typeof jsonBlob.sha !== "string" || !jsonBlob.sha) {
+      throw Object.assign(new Error("GitHub did not accept the video list."), {
+        friendly: "GitHub did not accept the video list."
+      });
+    }
     tree.push({ path: "data/videos.json", mode: "100644", type: "blob", sha: jsonBlob.sha });
     if (plan.profileJson) {
       const profileBlob = await request("POST", repoPath("/git/blobs"), {
@@ -529,9 +565,16 @@
       });
       tree.push({ path: "data/profile.json", mode: "100644", type: "blob", sha: profileBlob.sha });
     }
-    (plan.removePaths || []).forEach(path => {
-      tree.push({ path: path, mode: "100644", type: "blob", sha: null });
-    });
+    const removals = (plan.removePaths || []).filter(path => path && !tree.some(item => item.path === path));
+    if (removals.length) {
+      const listing = await request("GET", cacheBust(repoPath("/git/trees/" + parent.tree.sha + "?recursive=1")));
+      const entries = listing && Array.isArray(listing.tree) ? listing.tree : [];
+      const present = new Set(entries.map(item => item && item.path).filter(Boolean));
+      removals.forEach(path => {
+        if (!present.has(path)) return;
+        tree.push({ path: path, mode: "100644", type: "blob", sha: null });
+      });
+    }
     const createdTree = await request("POST", repoPath("/git/trees"), {
       base_tree: parent.tree.sha,
       tree: tree
