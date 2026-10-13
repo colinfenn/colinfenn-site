@@ -57,7 +57,8 @@ h3{margin:32px 0 12px;text-transform:uppercase;font-size:1rem;letter-spacing:.1e
 .keynums{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:18px 0 0;padding:16px 0 0;border-top:1px solid rgba(255,255,255,.16)}
 .keynums b{display:block;font-size:clamp(1.35rem,5vw,1.8rem);line-height:1}
 .keynums span{display:block;margin-top:4px;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:#9fb0c9}
-.id-line{font-size:clamp(1.35rem,4.4vw,2.15rem);line-height:1.25;font-weight:800;margin:0;text-transform:none;letter-spacing:0;overflow-wrap:anywhere}
+.hero-text{container-type:inline-size}
+.id-line{font-size:clamp(1rem,7.1cqi,2.15rem);line-height:1.25;font-weight:800;margin:0;text-transform:none;letter-spacing:0;white-space:nowrap}
 p.id-line{margin-top:.28em}
 .fresh-kicker{margin:16px 0 8px;font-weight:700;color:var(--muted)}
 .season-line{margin:0 0 10px;font-size:.85rem;font-weight:600;line-height:1.35;color:var(--muted)}
