@@ -7,7 +7,7 @@
   ],
   "videos": [
     {
-      "title": "Slider · K · Game",
+      "title": "K swinging vs Casa Grande @ SM",
       "type": "mp4",
       "url": "/media/videos/slider-k-game-20261013-124104.mp4",
       "tags": [
@@ -15,10 +15,10 @@
         "K",
         "Game"
       ],
+      "thumbnail": "/media/videos/slider-k-game-20261013-124104.jpg",
       "date": "October 13, 2026",
       "caption": "Struck out Casa Grande’s lefty leadoff hitter with a slider",
-      "category": "Pitching",
-      "thumbnail": "/media/videos/slider-k-game-20261013-124104.jpg"
+      "category": "Pitching"
     },
     {
       "title": "Line drive single",
