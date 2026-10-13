@@ -1,0 +1,34 @@
+{
+  "pitches": [
+    {
+      "name": "Sinker",
+      "history": [
+        { "mph": 75, "date": "2026-10" }
+      ]
+    },
+    {
+      "name": "Cutter",
+      "history": [
+        { "mph": 70, "date": "2026-09" }
+      ]
+    },
+    {
+      "name": "Changeup",
+      "history": [
+        { "mph": 66, "date": "2026-07" }
+      ]
+    },
+    {
+      "name": "Slider",
+      "history": [
+        { "mph": 62, "date": "2026-07" }
+      ]
+    },
+    {
+      "name": "Curveball",
+      "history": [
+        { "mph": 57, "date": "2026-07" }
+      ]
+    }
+  ]
+}

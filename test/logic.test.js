@@ -22,29 +22,25 @@ const base = {
 };
 
 test("suggested titles follow the taps", () => {
-  assert.equal(L.suggestedTitle({ category: "Pitching", pitch: "Fastball", angle: "Open side", setting: "Bullpen" }), "Fastball · Bullpen");
-  assert.equal(L.suggestedTitle({ category: "Hitting", result: "Double", angle: "Open side", setting: "Game" }), "Double · Game");
-  assert.equal(L.suggestedTitle({ category: "Fielding", play: "Diving catch", position: "CF", setting: "Game" }), "Diving catch · Game");
-  assert.equal(L.suggestedTitle({ category: "Workouts/Training", workout: "Long toss" }), "Long toss");
-  assert.equal(L.suggestedTitle({ category: "Game Highlights" }), "Game Highlights");
+  assert.equal(L.suggestedTitle({ category: "Pitching", tags: ["Bullpen", "Sinker"] }), "Sinker · Bullpen");
+  assert.equal(L.suggestedTitle({ category: "Hitting", tags: ["Game", "Single"] }), "Single · Game");
+  assert.equal(L.suggestedTitle({ category: "Fielding", tags: ["Catch", "Game"] }), "Catch · Game");
+  assert.equal(L.suggestedTitle({ category: "Training/Workouts", tags: ["Weights"] }), "Weights");
+  assert.equal(L.suggestedTitle({ category: "Pitching", tags: [] }), "Pitching");
 });
 
 test("every category uses the same five steps, with its own tags", () => {
+  assert.deepEqual(L.CATEGORIES, ["Pitching", "Hitting", "Fielding", "Training/Workouts"]);
   assert.deepEqual(L.STEPS, ["video", "category", "tags", "details", "preview"]);
-  for (const category of ["", "Pitching", "Hitting", "Fielding", "Workouts/Training", "Game Highlights"]) {
+  for (const category of ["", ...L.CATEGORIES]) {
     assert.deepEqual(L.stepsFor(category), L.STEPS);
+    assert.equal(L.stepsFor(category).length, 5);
   }
-  assert.deepEqual(L.tagsFor("Pitching").pitch, ["Fastball", "Sinker", "Slider", "Curveball", "Changeup", "Cutter"]);
-  assert.deepEqual(L.tagsFor("Hitting").result, ["Single", "Double", "Triple", "Home run", "Walk", "Line drive out"]);
-  assert.deepEqual(L.tagsFor("Hitting").pitchFaced, ["Fastball", "Breaking ball", "Off-speed"]);
-  assert.deepEqual(L.tagsFor("Hitting").battedBall, ["Line drive", "Ground ball", "Fly ball"]);
-  assert.deepEqual(L.tagsFor("Hitting").setting, ["Game", "Batting practice"]);
-  assert.deepEqual(L.tagsFor("Fielding").play, ["Catch", "Diving catch", "Throw/assist", "Ground ball", "Fly ball", "Relay"]);
-  assert.deepEqual(L.tagsFor("Fielding").position, ["LF", "CF", "RF", "P"]);
-  assert.deepEqual(L.tagsFor("Fielding").setting, ["Game", "Practice"]);
-  assert.deepEqual(L.tagsFor("Workouts/Training").workout, ["Velo", "Long toss", "Weights", "Speed/agility", "Bullpen"]);
-  assert.equal(L.hasTags("Game Highlights"), false);
-  assert.equal(L.hasTags("Workouts/Training"), true);
+  assert.deepEqual(L.tagsFor("Pitching"), ["Sinker", "Curveball", "Slider", "Cutter", "Changeup", "K", "Pickoff", "Game", "Bullpen"]);
+  assert.deepEqual(L.tagsFor("Hitting"), ["vs. Lefty", "vs. Righty", "Bunt", "Single", "Extra-base hit", "Game", "BP"]);
+  assert.deepEqual(L.tagsFor("Fielding"), ["OF", "Pitcher", "Catch", "Throw", "Game", "Practice"]);
+  assert.deepEqual(L.tagsFor("Training/Workouts"), ["Bullpen", "Weights", "Speed/Agility"]);
+  for (const category of L.CATEGORIES) assert.equal(L.hasTags(category), true);
 });
 
 test("dates use the calendar day, not UTC shifting", () => {
@@ -55,47 +51,52 @@ test("dates use the calendar day, not UTC shifting", () => {
 
 test("a pitching post keeps the site's video shape and drops unused tags", () => {
   const entry = L.buildEntry({
-    title: "Fastball · Bullpen",
+    title: "Sinker · Bullpen",
     type: "mp4",
-    url: "/media/videos/fastball.mp4",
+    url: "/media/videos/sinker.mp4",
     category: "Pitching",
-    pitch: "Fastball",
-    angle: "Open side",
-    setting: "Bullpen",
+    tags: ["Bullpen", "Sinker", "  sinker "],
+    velo: "75 mph",
+    opponent: "Nope",
+    thumbnail: "/media/videos/sinker.jpg",
     date: "October 12, 2026",
-    caption: "First-pitch slider, swing and miss."
+    caption: "First-pitch sinker, swing and miss."
   });
-  assert.deepEqual(Object.keys(entry), ["title", "type", "url", "pitch", "setting", "date", "caption", "category"]);
+  assert.deepEqual(Object.keys(entry), ["title", "type", "url", "tags", "velo", "thumbnail", "date", "caption", "category"]);
+  assert.deepEqual(entry.tags, ["Sinker", "Bullpen"]);
+  assert.equal(entry.opponent, undefined);
   const saved = L.prepareSave(base, { kind: "add", entry });
   assert.equal(saved.ok, true);
   assert.equal(saved.data.videos[0].title, entry.title);
   assert.equal(saved.data.videos[1].title, "Sinker (Placeholder)");
   assert.equal(saved.data.categories[0], "Pitching");
-  assert.match(saved.json, /"url": "\/media\/videos\/fastball.mp4"/);
-  assert.equal(saved.message, "Post video: Fastball · Bullpen");
+  assert.equal(saved.data.categories.length, 4);
+  assert.match(saved.json, /"url": "\/media\/videos\/sinker.mp4"/);
+  assert.equal(saved.message, "Post video: Sinker · Bullpen");
 });
 
-test("leaving pitching removes the pitch tag", () => {
+test("speed stays on pitching clips and is dropped everywhere else", () => {
   const original = base.videos[0];
   const entry = L.buildEntry({
-    title: "Hitting · Game",
+    title: "Single · Game",
     type: "youtube",
-    url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+    url: "https://www.youtube.com/watch?v=abcdefghijk",
     category: "Hitting",
-    pitch: "Sinker",
-    angle: "Open side",
-    setting: "Game",
+    tags: ["Single", "Game", "Sinker"],
+    velo: "75 mph",
+    opponent: "Marin Catholic",
     date: "October 12, 2026",
-    caption: "Opposite-field double."
+    caption: "Opposite-field single."
   });
-  assert.equal(entry.pitch, undefined);
-  assert.equal(entry.angle, undefined);
+  assert.equal(entry.velo, undefined);
+  assert.equal(entry.opponent, undefined);
+  assert.deepEqual(entry.tags, ["Single", "Game", "Sinker"]);
   const saved = L.prepareSave(base, { kind: "update", key: L.videoKey(original), entry });
   assert.equal(saved.ok, true);
   assert.equal(saved.data.videos.length, 1);
   assert.equal(saved.data.videos[0].category, "Hitting");
-  assert.equal(saved.data.videos[0].pitch, undefined);
-  assert.equal(L.youtubeId(saved.data.videos[0].url), "dQw4w9WgXcQ");
+  assert.equal(saved.data.videos[0].velo, undefined);
+  assert.equal(L.youtubeId(saved.data.videos[0].url), "abcdefghijk");
 });
 
 test("delete removes a repo video and leaves YouTube files alone", () => {
@@ -103,7 +104,7 @@ test("delete removes a repo video and leaves YouTube files alone", () => {
     categories: L.CATEGORIES.slice(),
     videos: [
       { title: "Phone clip", type: "mp4", url: "/media/videos/phone-clip.mp4", date: "October 12, 2026", caption: "Hi", category: "Hitting" },
-      { title: "Link", type: "youtube", url: "https://youtu.be/dQw4w9WgXcQ", date: "October 12, 2026", caption: "", category: "Hitting" }
+      { title: "Link", type: "youtube", url: "https://youtu.be/abcdefghijk", date: "October 12, 2026", caption: "", category: "Hitting" }
     ]
   };
   const fileDelete = L.prepareSave(data, { kind: "delete", key: L.videoKey(data.videos[0]) });
@@ -136,33 +137,29 @@ test("file names stay inside media/videos", () => {
   assert.equal(L.publicUrl(repoPath), "/" + repoPath);
 });
 
-test("optional speed, opponent, and one featured clip", () => {
+test("optional pitching speed and one featured clip", () => {
   const game = L.buildEntry({
-    title: "Double · Game",
+    title: "Single · Game",
     type: "youtube",
     url: "https://youtu.be/abcdefghijk",
     category: "Hitting",
-    result: "Double",
-    pitchFaced: "Fastball",
-    battedBall: "Line drive",
-    setting: "Game",
+    tags: ["Single", "Game"],
     velo: "75 mph",
     opponent: "Marin Catholic",
     featured: true,
     date: "October 12, 2026",
     caption: "Opposite field."
   });
-  assert.equal(game.velo, "75 mph");
-  assert.equal(game.opponent, "Marin Catholic");
+  assert.equal(game.velo, undefined);
+  assert.equal(game.opponent, undefined);
   assert.equal(game.featured, true);
-  assert.deepEqual(L.filterTags(game), ["Double", "Fastball", "Line drive", "Game", "75 mph", "Marin Catholic"]);
+  assert.deepEqual(L.filterTags(game), ["Single", "Game"]);
   const bullpen = L.buildEntry({
-    title: "Fastball",
+    title: "Sinker",
     type: "mp4",
-    url: "/media/videos/fastball.mp4",
+    url: "/media/videos/sinker.mp4",
     category: "Pitching",
-    pitch: "Fastball",
-    setting: "Bullpen",
+    tags: ["Sinker", "Bullpen"],
     opponent: "Should not stick",
     velo: "74 mph",
     date: "October 12, 2026",
@@ -170,7 +167,8 @@ test("optional speed, opponent, and one featured clip", () => {
   });
   assert.equal(bullpen.opponent, undefined);
   assert.equal(bullpen.velo, "74 mph");
-  const older = { title: "Old reel", type: "youtube", url: "https://youtu.be/aaaaaaaaaaa", category: "Game Highlights", featured: true, date: "", caption: "Old" };
+  assert.deepEqual(L.cardTags(bullpen), ["Sinker", "Bullpen", "74 mph"]);
+  const older = { title: "Old reel", type: "youtube", url: "https://youtu.be/aaaaaaaaaaa", category: "Pitching", featured: true, date: "", caption: "Old" };
   const saved = L.prepareSave({ categories: L.CATEGORIES.slice(), videos: [older] }, { kind: "add", entry: game });
   assert.equal(saved.data.videos[0].featured, true);
   assert.equal(saved.data.videos[1].featured, undefined);
@@ -185,23 +183,43 @@ test("optional speed, opponent, and one featured clip", () => {
   assert.deepEqual(L.featuredReel({ highlightReel: reel }, removed.data, removed.removedUrl), { url: "", title: "", caption: "" });
 });
 
-test("the public site filters every clip tag inside a tab", () => {
+test("the public site matches every selected tag and sorts newest first", () => {
   const src = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
-  assert.match(src, /function clipTags\(v\)\{return \[v\.pitch,v\.result,v\.pitchFaced,v\.battedBall,v\.play,v\.position,v\.workout,v\.setting,v\.velo,v\.opponent,\.\.\.\(Array\.isArray\(v\.tags\)\?v\.tags:\[\]\)\]/);
-  assert.match(src, /clipTags\(v\)\.includes\(f\)/);
-  assert.match(src, /v\.featured&&v\.url/);
+  assert.match(src, /L\.matchesAllTags\(v, selected\)/);
+  assert.match(src, /L\.sortByDate\(/);
+  assert.match(src, /Videos coming soon/);
+  assert.match(src, /v\.featured && v\.url/);
+  const logic = fs.readFileSync(path.join(__dirname, "../admin/logic.js"), "utf8");
+  assert.match(logic, /https:\/\/i\.ytimg\.com\/vi\//);
+  assert.match(logic, /hqdefault\.jpg/);
+  assert.match(logic, /#t=0\.5/);
+  const videos = [
+    { title: "old", date: "July 1, 2026", tags: ["Sinker", "Game"], category: "Pitching" },
+    { title: "new", date: "October 12, 2026", tags: ["Sinker", "Bullpen"], category: "Pitching" },
+    { title: "mid", date: "September 2, 2026", tags: ["Sinker", "Game"], category: "Pitching" },
+    { title: "tbd", date: "TBD", tags: ["Sinker"], category: "Pitching" }
+  ];
+  assert.equal(L.matchesAllTags(videos[0], []), true);
+  assert.equal(L.matchesAllTags(videos[0], ["Sinker", "Game"]), true);
+  assert.equal(L.matchesAllTags(videos[1], ["Sinker", "Game"]), false);
+  assert.deepEqual(L.sortByDate(videos).map(video => video.title), ["new", "mid", "old", "tbd"]);
 });
 
 test("the preview card uses the same markup as the site", () => {
   const html = L.cardHtml({
-    title: "Fastball · Game",
-    pitch: "Fastball",
-    setting: "Game",
+    title: "Sinker · Game",
+    category: "Pitching",
+    tags: ["Game", "Sinker"],
+    velo: "75 mph",
     date: "October 12, 2026",
     caption: "Swing and miss.",
-    mediaHtml: "<video></video>"
+    mediaHtml: "<img>"
   });
-  assert.match(html, /^<article class="vcard"><div class="vmedia"><video><\/video><\/div><div class="vbody"><h4>Fastball · Game<\/h4><div class="tags"><span class="tag">Fastball<\/span><span class="tag">Game<\/span><span class="tag">October 12, 2026<\/span><\/div><p>Swing and miss\.<\/p><\/div><\/article>$/);
+  assert.match(html, /^<article class="vcard"><div class="vmedia"><img><\/div><div class="vbody"><div class="tags"><span class="tag">Sinker<\/span><span class="tag">Game<\/span><span class="tag">75 mph<\/span><\/div><p>Swing and miss\.<\/p><\/div><\/article>$/);
+  assert.doesNotMatch(html, /October 12/);
+  assert.match(L.mediaHtml({ type: "youtube", url: "https://youtu.be/abcdefghijk", title: "Clip" }), /https:\/\/i\.ytimg\.com\/vi\/abcdefghijk\/hqdefault\.jpg/);
+  assert.match(L.mediaHtml({ type: "mp4", url: "/media/videos/a.mp4", title: "Clip" }), /preload="metadata"/);
+  assert.match(L.mediaHtml({ type: "mp4", url: "/media/videos/a.mp4", title: "Clip" }), /#t=0\.5/);
   assert.match(L.previewDocument({ title: "A", mediaHtml: "" }), /\/css\/theme\.css/);
 });
 
@@ -267,9 +285,45 @@ test("a rejected ref update is marked so the app can retry", async () => {
 test("reading videos.json decodes GitHub's base64 content", async () => {
   const raw = fs.readFileSync(path.join(__dirname, "../data/videos.json"), "utf8");
   const data = await L.readVideos(async () => ({ content: Buffer.from(raw, "utf8").toString("base64") }));
-  assert.equal(data.categories.length, 5);
-  assert.equal(data.videos[0].pitch, "Sinker");
-  assert.equal(L.isReal(data.videos[0]), false);
+  assert.deepEqual(data.categories, ["Pitching", "Hitting", "Fielding", "Training/Workouts"]);
+  assert.deepEqual(data.videos.map(video => ({
+    title: video.title,
+    url: video.url,
+    tags: video.tags,
+    thumbnail: video.thumbnail,
+    date: video.date,
+    caption: video.caption,
+    category: video.category
+  })), [
+    {
+      title: "Single",
+      url: "/media/videos/single-20261012-214250.mp4",
+      tags: ["Single"],
+      thumbnail: "/media/videos/single-20261012-214250.jpg",
+      date: "October 12, 2026",
+      caption: "Blah blah",
+      category: "Hitting"
+    },
+    {
+      title: "Curveball · Game",
+      url: "/media/videos/curveball-game-20261012-204654.mov",
+      tags: ["Curveball", "Game"],
+      thumbnail: "/media/videos/curveball-game-20261012-204654.jpg",
+      date: "October 12, 2026",
+      caption: "Finish curveball lefty lefty",
+      category: "Pitching"
+    },
+    {
+      title: "Pitching",
+      url: "/media/videos/pitching-20261012-195823.mp4",
+      tags: ["K"],
+      thumbnail: "/media/videos/pitching-20261012-195823.jpg",
+      date: "October 12, 2026",
+      caption: "This is a test video",
+      category: "Pitching"
+    }
+  ]);
+  assert.equal(data.videos.some(video => /placeholder/i.test(video.title)), false);
 });
 
 test("no category has a camera-angle tag group", () => {
@@ -287,12 +341,84 @@ test("custom tags are trimmed, deduped, capped, and saved with the video", () =>
   tags = L.addCustomTag(tags, "x".repeat(50));
   assert.equal(tags[1].length, L.MAX_CUSTOM_TAG);
   for (const category of L.CATEGORIES) {
-    const entry = L.buildEntry({ title: "T", type: "youtube", url: "https://youtu.be/dQw4w9WgXcQ", category, tags: [" vs. lefty ", "VS. LEFTY"], date: "October 12, 2026" });
-    assert.deepEqual(entry.tags, ["vs. lefty"]);
-    assert.ok(L.cardTags(entry).includes("vs. lefty"));
-    assert.ok(L.filterTags(entry).includes("vs. lefty"));
-    assert.match(L.cardHtml(entry), /vs\. lefty/);
+    const entry = L.buildEntry({ title: "T", type: "youtube", url: "https://youtu.be/abcdefghijk", category, tags: [" vs. lefty ", "VS. LEFTY"], date: "October 12, 2026" });
+    const expected = category === "Hitting" ? ["vs. Lefty"] : ["vs. lefty"];
+    assert.deepEqual(entry.tags, expected);
+    assert.ok(L.cardTags(entry).some(tag => tag.toLowerCase() === "vs. lefty"));
+    assert.ok(L.filterTags(entry).some(tag => tag.toLowerCase() === "vs. lefty"));
+    assert.match(L.cardHtml(entry), /vs\. lefty/i);
   }
   const none = L.buildEntry({ title: "T", type: "youtube", url: "u", category: "Pitching", tags: [] });
   assert.equal(none.tags, undefined);
+});
+
+test("deleting a clip also removes its poster", () => {
+  const data = {
+    categories: L.CATEGORIES.slice(),
+    videos: [{ title: "Phone", type: "mp4", url: "/media/videos/phone.mp4", thumbnail: "/media/videos/phone.jpg", date: "October 12, 2026", caption: "", category: "Hitting", tags: ["Single"] }]
+  };
+  const saved = L.prepareSave(data, { kind: "delete", key: L.videoKey(data.videos[0]) });
+  assert.deepEqual(saved.removePaths, ["media/videos/phone.mp4", "media/videos/phone.jpg"]);
+  assert.equal(L.thumbnailRepoPath("media/videos/phone.mp4"), "media/videos/phone.jpg");
+});
+
+test("a poster image is committed next to the video", async () => {
+  const entry = L.buildEntry({
+    title: "Sinker",
+    type: "mp4",
+    url: "/media/videos/sinker.mp4",
+    thumbnail: "/media/videos/sinker.jpg",
+    category: "Pitching",
+    tags: ["Sinker"],
+    date: "October 12, 2026",
+    caption: ""
+  });
+  const plan = L.prepareSave({ categories: L.CATEGORIES.slice(), videos: [] }, { kind: "add", entry });
+  const calls = [];
+  await L.commitChanges(async (method, url, body) => {
+    calls.push({ method, url, body });
+    if (url.endsWith("/git/ref/heads/main") && method === "GET") return { object: { sha: "parent" } };
+    if (url.endsWith("/git/commits/parent")) return { tree: { sha: "tree0" } };
+    if (url.endsWith("/git/blobs")) return { sha: "blob-" + calls.length };
+    if (url.endsWith("/git/trees")) return { sha: "tree1" };
+    if (url.endsWith("/git/commits") && method === "POST") return { sha: "commit1" };
+    if (method === "PATCH") return { ref: "refs/heads/main" };
+    throw new Error("unexpected " + method + " " + url);
+  }, plan, { mediaPath: "media/videos/sinker.mp4", mediaBase64: "AAAA", thumbnailPath: "media/videos/sinker.jpg", thumbnailBase64: "BBBB" });
+  const tree = calls.find(call => call.url.endsWith("/git/trees")).body.tree;
+  assert.deepEqual(tree.map(item => item.path), ["media/videos/sinker.mp4", "media/videos/sinker.jpg", "data/videos.json"]);
+});
+
+test("pitch history expands newest first and draws a trend after two readings", () => {
+  assert.equal(L.monthLabel("2026-10"), "Oct 2026");
+  assert.equal(L.monthLabel("2026-07"), "Jul 2026");
+  assert.equal(L.trendSvg([{ mph: 75, date: "2026-10" }]), "");
+  const svg = L.trendSvg([{ mph: 70, date: "2026-09" }, { mph: 75, date: "2026-10" }]);
+  assert.match(svg, /<svg/);
+  assert.match(svg, /<path/);
+  assert.deepEqual(L.historyNewestFirst([{ mph: 66, date: "2026-07" }, { mph: 70, date: "2026-09" }]).map(point => point.mph), [70, 66]);
+  const pitches = JSON.parse(fs.readFileSync(path.join(__dirname, "../data/pitches.json"), "utf8"));
+  assert.deepEqual(pitches.pitches.map(pitch => pitch.name), ["Sinker", "Cutter", "Changeup", "Slider", "Curveball"]);
+  assert.deepEqual(pitches.pitches.map(pitch => pitch.history.length), [1, 1, 1, 1, 1]);
+  assert.deepEqual(pitches.pitches.map(pitch => pitch.history[0].mph), [75, 70, 66, 62, 57]);
+  const stats = JSON.parse(fs.readFileSync(path.join(__dirname, "../data/stats.json"), "utf8"));
+  assert.equal(stats.tables[0].rows[0].obp, ".491");
+  assert.equal(stats.tables[0].columns.some(column => column.key === "cpct"), false);
+  assert.equal(stats.tables[1].rows[0].era, "5.29");
+  assert.equal(stats.tables[1].rows[0].spct, "55.64%");
+  assert.equal(stats.tables[1].rows[0].cpct, "89.80%");
+  const yml = fs.readFileSync(path.join(__dirname, "../admin/advanced/config.yml"), "utf8");
+  assert.match(yml, /data\/pitches\.json/);
+  assert.match(yml, /do not overwrite older ones/);
+  assert.doesNotMatch(yml, /Game Highlights/);
+  const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  assert.match(html, /href="#videos"/);
+  assert.match(html, /href="#about"/);
+  assert.match(html, /About Me video coming soon/);
+  assert.doesNotMatch(html, /id="academics"|id="schedule"|id="showcases"|id="references"|id="note"|FB Velo/);
+  const uploader = fs.readFileSync(path.join(__dirname, "../admin/app.js"), "utf8");
+  assert.match(uploader, /captureFrame/);
+  assert.match(uploader, /canvas/);
+  assert.match(uploader, /Videos coming soon/);
+  assert.match(uploader, /You can pick more than one/);
 });

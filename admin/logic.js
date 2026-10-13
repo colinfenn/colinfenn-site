@@ -1,55 +1,37 @@
-/* Shared rules for the phone uploader. No browser APIs. */
+/* Shared rules for the phone uploader and the public site. No browser APIs. */
 (function (root, factory) {
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
   else root.ColinUpload = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
-  const CATEGORIES = ["Pitching", "Hitting", "Fielding", "Workouts/Training", "Game Highlights"];
-  const PITCHES = ["Fastball", "Sinker", "Slider", "Curveball", "Changeup", "Cutter"];
-  const ANGLES = ["Open side", "Behind mound", "Front", "Side"];
-  const SETTINGS = ["Game", "Bullpen"];
-  const HITTING_RESULTS = ["Single", "Double", "Triple", "Home run", "Walk", "Line drive out"];
-  const PITCH_FACED = ["Fastball", "Breaking ball", "Off-speed"];
-  const BATTED_BALLS = ["Line drive", "Ground ball", "Fly ball"];
-  const HITTING_WHERE = ["Game", "Batting practice"];
-  const FIELD_PLAYS = ["Catch", "Diving catch", "Throw/assist", "Ground ball", "Fly ball", "Relay"];
-  const POSITIONS = ["LF", "CF", "RF", "P"];
-  const FIELD_WHERE = ["Game", "Practice"];
-  const WORKOUTS = ["Velo", "Long toss", "Weights", "Speed/agility", "Bullpen"];
-  const STEPS = ["video", "category", "tags", "details", "preview"];
-  const TAG_LABELS = {
-    pitch: "Pitch",
-    result: "Result",
-    pitchFaced: "Pitch faced",
-    battedBall: "Batted ball",
-    play: "Play",
-    position: "Position",
-    workout: "Workout",
-    setting: "Where"
+  const CATEGORIES = ["Pitching", "Hitting", "Fielding", "Training/Workouts"];
+  const TAGS = {
+    Pitching: ["Sinker", "Curveball", "Slider", "Cutter", "Changeup", "K", "Pickoff", "Game", "Bullpen"],
+    Hitting: ["vs. Lefty", "vs. Righty", "Bunt", "Single", "Extra-base hit", "Game", "BP"],
+    Fielding: ["OF", "Pitcher", "Catch", "Throw", "Game", "Practice"],
+    "Training/Workouts": ["Bullpen", "Weights", "Speed/Agility"]
   };
+  const STEPS = ["video", "category", "tags", "details", "preview"];
+  const TAG_LABELS = {};
   const MAX_CUSTOM_TAG = 30;
   const MAX_CUSTOM_TAGS = 10;
   const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
   const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   const CAPTION_HINTS = {
-    Pitching: "First-pitch slider, swing and miss.",
-    Hitting: "Opposite-field double in the third.",
-    Fielding: "Backhand at short and the throw to first.",
-    "Workouts/Training": "Long toss before practice.",
-    "Game Highlights": "Two strikeouts and a double."
+    Pitching: "First-pitch sinker, swing and miss.",
+    Hitting: "Opposite-field single in the third.",
+    Fielding: "Running catch in the gap.",
+    "Training/Workouts": "Bullpen before practice."
   };
 
   function tagsFor(category) {
-    if (category === "Pitching") return { pitch: PITCHES, setting: SETTINGS };
-    if (category === "Hitting") return { result: HITTING_RESULTS, pitchFaced: PITCH_FACED, battedBall: BATTED_BALLS, setting: HITTING_WHERE };
-    if (category === "Fielding") return { play: FIELD_PLAYS, position: POSITIONS, setting: FIELD_WHERE };
-    if (category === "Workouts/Training") return { workout: WORKOUTS };
-    return {};
+    return (TAGS[category] || []).slice();
   }
 
   function hasTags(category) {
-    return Object.keys(tagsFor(category)).length > 0;
+    return tagsFor(category).length > 0;
   }
 
   function stepsFor() {
@@ -60,37 +42,47 @@
     return String(text == null ? "" : text).replace(/\s+/g, " ").trim().slice(0, MAX_CUSTOM_TAG).trim();
   }
 
+  function isPresetTag(tag) {
+    const key = String(tag || "").toLowerCase();
+    return CATEGORIES.some(category => tagsFor(category).some(option => option.toLowerCase() === key));
+  }
+
   function normalizeTags(list) {
     const out = [];
     const seen = new Set();
+    let custom = 0;
     (Array.isArray(list) ? list : []).forEach(item => {
       const tag = cleanTag(item);
       const key = tag.toLowerCase();
-      if (!tag || seen.has(key) || out.length >= MAX_CUSTOM_TAGS) return;
+      if (!tag || seen.has(key)) return;
+      if (!isPresetTag(tag)) {
+        if (custom >= MAX_CUSTOM_TAGS) return;
+        custom += 1;
+      }
       seen.add(key);
       out.push(tag);
     });
     return out;
   }
 
+  function orderedTags(category, list) {
+    const clean = normalizeTags(list);
+    const options = tagsFor(category);
+    const preset = options.filter(option => clean.some(tag => tag.toLowerCase() === option.toLowerCase()));
+    const custom = clean.filter(tag => !options.some(option => option.toLowerCase() === tag.toLowerCase()));
+    return preset.concat(custom);
+  }
+
   function addCustomTag(list, text) {
     return normalizeTags((Array.isArray(list) ? list : []).concat([text]));
   }
 
-  function showOpponent(draft) {
-    return !!draft && (draft.category === "Game Highlights" || draft.setting === "Game");
-  }
-
   function suggestedTitle(draft) {
-    const parts = [];
-    const tags = tagsFor(draft.category);
-    if (draft.category === "Pitching" && draft.pitch) parts.push(draft.pitch);
-    else if (draft.category === "Hitting" && draft.result) parts.push(draft.result);
-    else if (draft.category === "Fielding" && draft.play) parts.push(draft.play);
-    else if (draft.category === "Workouts/Training" && draft.workout) parts.push(draft.workout);
-    else if (draft.category) parts.push(draft.category);
-    if (tags.setting && draft.setting) parts.push(draft.setting);
-    return parts.join(" · ");
+    const chosen = orderedTags(draft && draft.category, draft && draft.tags).filter(tag =>
+      tagsFor(draft.category).some(option => option.toLowerCase() === tag.toLowerCase())
+    );
+    if (chosen.length) return chosen.join(" · ");
+    return (draft && draft.category) || "";
   }
 
   function pad(n) {
@@ -135,6 +127,10 @@
 
   function mediaRepoPath(title, fileName, fileType, date) {
     return "media/videos/" + slug(title) + "-" + stamp(date) + "." + extensionFor(fileName, fileType);
+  }
+
+  function thumbnailRepoPath(videoRepoPath) {
+    return String(videoRepoPath || "").replace(/\.[^./]+$/, ".jpg");
   }
 
   function publicUrl(repoPath) {
@@ -188,43 +184,87 @@
   }
 
   function buildEntry(draft) {
-    const tags = tagsFor(draft.category);
     const entry = {
       title: String(draft.title || "").trim(),
       type: draft.type,
       url: String(draft.url || "").trim()
     };
-    Object.keys(TAG_LABELS).forEach(key => {
-      if (tags[key] && draft[key]) entry[key] = draft[key];
-    });
+    const tags = orderedTags(draft.category, draft.tags);
+    if (tags.length) entry.tags = tags;
     const velo = String(draft.velo || "").trim();
-    if (velo) entry.velo = velo;
-    const opponent = String(draft.opponent || "").trim();
-    if (opponent && showOpponent(draft)) entry.opponent = opponent;
+    if (velo && draft.category === "Pitching") entry.velo = velo;
+    const thumbnail = String(draft.thumbnail || "").trim();
+    if (thumbnail) entry.thumbnail = thumbnail;
     entry.date = draft.date || "";
     entry.caption = String(draft.caption || "").trim();
     entry.category = draft.category;
-    const custom = normalizeTags(draft.tags);
-    if (custom.length) entry.tags = custom;
     if (draft.featured) entry.featured = true;
     return entry;
   }
 
   function cardTags(video) {
-    return ["pitch", "result", "pitchFaced", "battedBall", "play", "position", "workout", "setting", "velo", "opponent"]
-      .map(key => video[key])
-      .concat(normalizeTags(video.tags), [video.date])
-      .filter(Boolean);
+    const tags = orderedTags(video && video.category, video && video.tags);
+    const velo = video && video.category === "Pitching" ? String(video.velo || "").trim() : "";
+    return velo ? tags.concat([velo]) : tags;
   }
 
   function filterTags(video) {
-    return cardTags(video).filter(tag => tag !== video.date);
+    return orderedTags(video && video.category, video && video.tags);
+  }
+
+  function matchesAllTags(video, selected) {
+    const need = normalizeTags(selected);
+    if (!need.length) return true;
+    const have = new Set(filterTags(video).map(tag => tag.toLowerCase()));
+    return need.every(tag => have.has(tag.toLowerCase()));
+  }
+
+  function postedTime(video) {
+    const match = String(video && video.date || "").match(/^([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})$/);
+    if (!match) return 0;
+    const month = MONTHS.findIndex(name => name.toLowerCase() === match[1].toLowerCase());
+    if (month < 0) return 0;
+    return Date.UTC(Number(match[3]), month, Number(match[2]));
+  }
+
+  function sortByDate(list) {
+    return (list || []).slice().sort((a, b) => postedTime(b) - postedTime(a));
+  }
+
+  function monthLabel(date) {
+    const match = String(date || "").match(/^(\d{4})-(\d{2})/);
+    if (!match) return String(date || "");
+    const index = Number(match[2]) - 1;
+    if (index < 0 || index > 11) return String(date || "");
+    return SHORT_MONTHS[index] + " " + match[1];
+  }
+
+  function historyNewestFirst(history) {
+    return (history || []).slice().sort((a, b) => String(b && b.date || "").localeCompare(String(a && a.date || "")));
+  }
+
+  function trendSvg(history) {
+    const points = historyNewestFirst(history).slice().reverse().filter(point => point && point.mph != null && point.mph !== "");
+    if (points.length < 2) return "";
+    const nums = points.map(point => Number(point.mph));
+    const min = Math.min.apply(null, nums);
+    const max = Math.max.apply(null, nums);
+    const w = 140;
+    const h = 40;
+    const pad = 4;
+    const cmds = points.map((point, i) => {
+      const x = pad + (i / (points.length - 1)) * (w - pad * 2);
+      const mph = Number(point.mph);
+      const y = max === min ? h / 2 : pad + (1 - (mph - min) / (max - min)) * (h - pad * 2);
+      return (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1);
+    });
+    return '<svg class="trend" viewBox="0 0 ' + w + " " + h + '" width="' + w + '" height="' + h + '" aria-hidden="true" focusable="false"><path d="' + cmds.join("") + '" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>';
   }
 
   function cardHtml(video) {
     const tags = cardTags(video).map(tag => '<span class="tag">' + esc(tag) + "</span>").join("");
     const caption = video.caption ? "<p>" + esc(video.caption) + "</p>" : "";
-    return '<article class="vcard"><div class="vmedia">' + (video.mediaHtml || "") + '</div><div class="vbody"><h4>' + esc(video.title) + '</h4><div class="tags">' + tags + "</div>" + caption + "</div></article>";
+    return '<article class="vcard"><div class="vmedia">' + (video.mediaHtml || "") + '</div><div class="vbody"><div class="tags">' + tags + "</div>" + caption + "</div></article>";
   }
 
   function videoKey(video) {
@@ -235,17 +275,8 @@
       video.category || "",
       video.caption || "",
       video.date || "",
-      video.pitch || "",
-      video.result || "",
-      video.pitchFaced || "",
-      video.battedBall || "",
-      video.play || "",
-      video.position || "",
-      video.workout || "",
-      video.angle || "",
-      video.setting || "",
       video.velo || "",
-      video.opponent || "",
+      video.thumbnail || "",
       video.featured ? "1" : "",
       normalizeTags(video.tags).join("|")
     ]);
@@ -257,7 +288,7 @@
 
   function cloneData(data) {
     return {
-      categories: (data && data.categories && data.categories.length ? data.categories : CATEGORIES).slice(),
+      categories: CATEGORIES.slice(),
       videos: ((data && data.videos) || []).map(video => Object.assign({}, video))
     };
   }
@@ -304,7 +335,7 @@
   }
 
   function serializeVideos(data) {
-    return JSON.stringify({ categories: data.categories, videos: data.videos }, null, 2) + "\n";
+    return JSON.stringify({ categories: CATEGORIES.slice(), videos: data.videos }, null, 2) + "\n";
   }
 
   function prepareSave(data, action) {
@@ -328,13 +359,17 @@
     if (action.kind === "delete") {
       const removed = next.videos[index];
       next.videos.splice(index, 1);
-      const removePath = mediaPathFromUrl(removed.url);
+      const removePaths = [];
+      const videoPath = mediaPathFromUrl(removed.url);
+      const posterPath = mediaPathFromUrl(removed.thumbnail);
+      if (videoPath) removePaths.push(videoPath);
+      if (posterPath && posterPath !== videoPath) removePaths.push(posterPath);
       return {
         ok: true,
         data: next,
         json: serializeVideos(next),
         message: "Remove video: " + (removed.title || "Untitled"),
-        removePaths: removePath ? [removePath] : [],
+        removePaths: removePaths,
         removedUrl: removed.url || ""
       };
     }
@@ -420,6 +455,13 @@
       }, extra.onProgress);
       tree.push({ path: extra.mediaPath, mode: "100644", type: "blob", sha: blob.sha });
     }
+    if (extra.thumbnailPath) {
+      const thumbBlob = await request("POST", repoPath("/git/blobs"), {
+        content: extra.thumbnailBase64,
+        encoding: "base64"
+      });
+      tree.push({ path: extra.thumbnailPath, mode: "100644", type: "blob", sha: thumbBlob.sha });
+    }
     const jsonBlob = await request("POST", repoPath("/git/blobs"), {
       content: utf8ToBase64(plan.json),
       encoding: "base64"
@@ -463,41 +505,42 @@
   }
 
   function mediaHtml(video) {
-    const id = video.type === "youtube" ? youtubeId(video.url) : "";
-    if (id) {
-      return '<iframe src="https://www.youtube-nocookie.com/embed/' + esc(id) + '" title="' + esc(video.title) + '" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+    const id = youtubeId(video.url);
+    if (id && video.type !== "mp4") {
+      return '<button type="button" class="play" data-play="youtube" data-id="' + esc(id) + '"><img alt="' + esc(video.title || "Video") + '" src="https://i.ytimg.com/vi/' + esc(id) + '/hqdefault.jpg"></button>';
+    }
+    if (video.thumbnail && video.url && video.type !== "placeholder") {
+      return '<button type="button" class="play" data-play="file" data-src="' + esc(video.url) + '"><img alt="' + esc(video.title || "Video") + '" src="' + esc(video.thumbnail) + '"></button>';
     }
     if (video.url && video.type !== "placeholder") {
-      return '<video controls preload="metadata" playsinline><source src="' + esc(video.url) + '">' + esc(video.caption || "") + "</video>";
+      return '<video controls preload="metadata" playsinline src="' + esc(video.url) + '#t=0.5"></video>';
     }
     return "<span>▶ Video coming soon</span>";
   }
 
   return {
     CATEGORIES,
-    PITCHES,
-    ANGLES,
-    SETTINGS,
-    HITTING_RESULTS,
-    PITCH_FACED,
-    BATTED_BALLS,
-    FIELD_PLAYS,
-    POSITIONS,
-    WORKOUTS,
+    TAGS,
     STEPS,
     TAG_LABELS,
     MAX_CUSTOM_TAG,
+    MAX_CUSTOM_TAGS,
     cleanTag,
     normalizeTags,
+    orderedTags,
     addCustomTag,
     MAX_VIDEO_BYTES,
     CAPTION_HINTS,
     tagsFor,
     hasTags,
     stepsFor,
-    showOpponent,
     suggestedTitle,
     filterTags,
+    matchesAllTags,
+    sortByDate,
+    monthLabel,
+    historyNewestFirst,
+    trendSvg,
     featuredReel,
     profileWithReel,
     todayISO,
@@ -506,6 +549,7 @@
     slug,
     extensionFor,
     mediaRepoPath,
+    thumbnailRepoPath,
     publicUrl,
     mediaPathFromUrl,
     youtubeId,
