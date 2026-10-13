@@ -8,6 +8,16 @@
   ],
   "videos": [
     {
+      "title": "Curveball · Game",
+      "type": "mp4",
+      "url": "/media/videos/curveball-game-20261012-204654.mov",
+      "pitch": "Curveball",
+      "setting": "Game",
+      "date": "October 12, 2026",
+      "caption": "Finish curveball lefty lefty",
+      "category": "Pitching"
+    },
+    {
       "title": "Pitching",
       "type": "mp4",
       "url": "/media/videos/pitching-20261012-195823.mp4",
