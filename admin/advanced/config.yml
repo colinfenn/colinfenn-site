@@ -151,6 +151,7 @@ collections:
               - { label: OBP, name: obp, widget: string, required: false, hint: "On-base percentage, example .491" }
               - { label: SLG, name: slg, widget: string, required: false, hint: "Slugging, example .551" }
               - { label: OPS, name: ops, widget: string, required: false, hint: "Example: 1.042" }
+              - { label: "C%", name: cpct, widget: string, required: false, hint: "Contact percentage, example 89.80%" }
           - label: Pitching rows are only an example
             name: pitchingExample
             widget: boolean
@@ -175,7 +176,6 @@ collections:
               - { label: SO, name: so, widget: string, required: false, hint: "Strikeouts, example 42" }
               - { label: BB/IP, name: bbIp, widget: string, required: false, hint: "Walks per inning, example .585" }
               - { label: "Strike%", name: spct, widget: string, required: false, hint: "Strike percentage, example 55.64%" }
-              - { label: "C%", name: cpct, widget: string, required: false, hint: "Contact percentage, example 89.80%" }
 
   - name: pitches
     label: Pitch velo

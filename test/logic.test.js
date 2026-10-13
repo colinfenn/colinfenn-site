@@ -403,10 +403,14 @@ test("pitch history expands newest first and draws a trend after two readings", 
   assert.deepEqual(pitches.pitches.map(pitch => pitch.history[0].mph), [75, 70, 66, 62, 57]);
   const stats = JSON.parse(fs.readFileSync(path.join(__dirname, "../data/stats.json"), "utf8"));
   assert.equal(stats.tables[0].rows[0].obp, ".491");
-  assert.equal(stats.tables[0].columns.some(column => column.key === "cpct"), false);
+  const hittingKeys = stats.tables[0].columns.map(column => column.key);
+  assert.equal(hittingKeys[hittingKeys.indexOf("ops") + 1], "cpct");
+  assert.equal(stats.tables[0].columns.find(column => column.key === "cpct").label, "C%");
+  assert.equal(stats.tables[0].rows[0].cpct, "89.80%");
   assert.equal(stats.tables[1].rows[0].era, "5.29");
   assert.equal(stats.tables[1].rows[0].spct, "55.64%");
-  assert.equal(stats.tables[1].rows[0].cpct, "89.80%");
+  assert.equal(stats.tables[1].columns.some(column => column.key === "cpct"), false);
+  assert.equal(stats.tables[1].rows[0].cpct, undefined);
   const yml = fs.readFileSync(path.join(__dirname, "../admin/advanced/config.yml"), "utf8");
   assert.match(yml, /data\/pitches\.json/);
   assert.match(yml, /do not overwrite older ones/);
