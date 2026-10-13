@@ -98,7 +98,13 @@
       const cls = c => c.key === "team" ? ' class="col-team"' : "";
       const teams = [...new Set((t.rows || []).map(r => r.team).filter(Boolean))].join(", ");
       const head = cols.map(c => `<th scope="col"${cls(c)}${c.title ? ` title="${esc(c.title)}"` : ""}>${c.title ? `<abbr title="${esc(c.title)}">${esc(c.label)}</abbr>` : esc(c.label)}</th>`).join("");
-      const body = (t.rows || []).map(r => `<tr class="${(r.example ?? t.example) ? "example" : ""}">${cols.map((c, i) => i ? `<td${cls(c)}>${esc(r[c.key] ?? "—")}</td>` : `<th scope="row">${esc(r[c.key] ?? "")}</th>`).join("")}</tr>`).join("") || `<tr><td colspan="${cols.length}">Coming soon.</td></tr>`;
+      const cell = (c, i, value) => {
+        const label = ` data-label="${esc(c.label)}"`;
+        return i
+          ? `<td${cls(c)}${label}>${esc(value)}</td>`
+          : `<th scope="row"${label}>${esc(value)}</th>`;
+      };
+      const body = (t.rows || []).map(r => `<tr class="${(r.example ?? t.example) ? "example" : ""}">${cols.map((c, i) => cell(c, i, r[c.key] ?? (i ? "—" : ""))).join("")}</tr>`).join("") || `<tr><td colspan="${cols.length}">Coming soon.</td></tr>`;
       return `<h3>${esc(t.title)}${teams ? ` <span class="team-sub">· ${esc(teams)}</span>` : ""}</h3>${t.example ? `<p class="note"><span class="badge">EXAMPLE</span>${esc(t.note || "Example rows only.")}</p>` : ""}<div class="table-wrap"><table><caption class="sr">${esc(t.title)} stats by season</caption><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
     }).join("") || "<p>Stats coming soon.</p>";
     const honors = $("#honors-stats");
@@ -155,7 +161,8 @@
     const render = () => {
       tabs.innerHTML = cats.map(c => {
         const n = vids.filter(v => v.category === c && L.isReal(v)).length;
-        return `<button type="button" role="tab" data-cat="${esc(c)}" aria-selected="${c === cat}" tabindex="${c === cat ? 0 : -1}">${esc(c)}${n ? ` <small>${n}</small>` : ""}</button>`;
+        const label = esc(c).replace("/", "/<wbr>");
+        return `<button type="button" role="tab" data-cat="${esc(c)}" aria-selected="${c === cat}" tabindex="${c === cat ? 0 : -1}">${label}${n ? `<small>${n}</small>` : ""}</button>`;
       }).join("");
       const inCat = vids.filter(v => v.category === cat);
       const options = filterChoices(cat, inCat);

@@ -6,7 +6,7 @@ h1,h2,h3,.brand,.eyebrow,.btn,.glance-list b,.metric .v,.cards dd,.email,.tabs b
 .brand{font-size:1.35rem;letter-spacing:.06em}.nav nav a{font-weight:600;transition:color .2s}.nav nav a:hover{color:#fff}
 /* Hero */
 .hero{background:radial-gradient(120% 90% at 85% 0%,#1b3566 0%,transparent 55%),linear-gradient(160deg,#050b16 0%,#0a1628 55%,#0f2140 100%);padding:36px 0 48px;position:relative;overflow:hidden}
-.hero::before{content:"29";position:absolute;right:-2vw;bottom:-6vw;font:800 clamp(14rem,38vw,30rem)/.8 var(--disp);color:rgba(255,255,255,.035);pointer-events:none}
+.hero::before{content:"29";position:absolute;right:0;bottom:-6vw;max-width:70%;font:800 clamp(14rem,38vw,30rem)/.8 var(--disp);color:rgba(255,255,255,.035);pointer-events:none;overflow:hidden}
 .hero::after{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--gold))}
 .hero-in{position:relative;z-index:1}
 .photo{border:0;border-radius:20px;background:linear-gradient(160deg,#16294a,#0c1a33);box-shadow:0 30px 60px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.06)}
