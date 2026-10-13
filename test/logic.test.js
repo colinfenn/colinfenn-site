@@ -296,30 +296,30 @@ test("reading videos.json decodes GitHub's base64 content", async () => {
     category: video.category
   })), [
     {
-      title: "Single",
+      title: "Line drive single",
       url: "/media/videos/single-20261012-214250.mp4",
       tags: ["Single"],
       thumbnail: "/media/videos/single-20261012-214250.jpg",
       date: "October 12, 2026",
-      caption: "Blah blah",
+      caption: "Single to RF vs 17u pitcher",
       category: "Hitting"
     },
     {
-      title: "Curveball · Game",
+      title: "Got the K swinging vs lefty hitter",
       url: "/media/videos/curveball-game-20261012-204654.mov",
-      tags: ["Curveball", "Game"],
+      tags: ["Slider", "K", "Game"],
       thumbnail: "/media/videos/curveball-game-20261012-204654.jpg",
       date: "October 12, 2026",
-      caption: "Finish curveball lefty lefty",
+      caption: "Finished him with my slider",
       category: "Pitching"
     },
     {
-      title: "Pitching",
+      title: "K looking vs 17u hitter",
       url: "/media/videos/pitching-20261012-195823.mp4",
-      tags: ["K"],
+      tags: ["Slider", "K", "Game"],
       thumbnail: "/media/videos/pitching-20261012-195823.jpg",
       date: "October 12, 2026",
-      caption: "This is a test video",
+      caption: "Caught him looking with a slider on the outside corner",
       category: "Pitching"
     }
   ]);
@@ -425,7 +425,7 @@ test("pitch history expands newest first and draws a trend after two readings", 
   assert.match(html, /href="#about"/);
   assert.match(html, /About Me video coming soon/);
   assert.match(html, /Colin Fenn – LHP\/OF – Class of 2029/);
-  assert.match(html, /id="teams-line">San Marin HS – NorCal Black 2029/);
+  assert.match(html, /id="teams-line">San Marin HS, NorCal Black 2029/);
   assert.match(fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8"), /join\(" – "\)/);
   assert.ok(html.indexOf('id="velo"') > 0 && html.indexOf('id="velo"') < html.indexOf('id="honors"'));
   assert.match(html, /id="velo" class="sec alt"/);
