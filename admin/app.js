@@ -10,6 +10,7 @@
     token: "",
     login: "",
     videos: null,
+    profile: null,
     error: "",
     notice: "",
     busy: false,
@@ -100,8 +101,17 @@
       youtube: "",
       category: "",
       pitch: "",
+      result: "",
+      pitchFaced: "",
+      battedBall: "",
+      play: "",
+      position: "",
+      workout: "",
       angle: "",
       setting: "",
+      velo: "",
+      opponent: "",
+      featured: false,
       caption: "",
       dateISO: L.todayISO(new Date()),
       dateLabel: "",
@@ -213,11 +223,22 @@
           if (!response.ok) throw Object.assign(new Error("network"), { status: 0 });
           state.videos = await response.json();
         }
+        if (!state.profile) {
+          const response = await fetch("/data/profile.json", { cache: "no-cache" });
+          if (response.ok) state.profile = await response.json();
+        }
         state.login = "Colin";
       } else {
         const user = await request("GET", "/user");
         state.login = user.name || user.login || "there";
         state.videos = await L.readVideos(request);
+        try {
+          const file = await request("GET", "/repos/" + L.REPO + "/contents/data/profile.json?ref=" + L.BRANCH);
+          state.profile = JSON.parse(L.base64ToUtf8(file.content));
+        } catch (err) {
+          if (err.status === 401) throw err;
+          state.profile = null;
+        }
       }
       state.screen = "home";
     } catch (err) {
@@ -261,6 +282,7 @@
     state.token = "";
     state.login = "";
     state.videos = null;
+    state.profile = null;
     state.notice = "";
     state.error = "";
     localStorage.removeItem(TOKEN_KEY);
@@ -350,8 +372,17 @@
         url: draft.url,
         category: draft.category,
         pitch: draft.pitch,
+        result: draft.result,
+        pitchFaced: draft.pitchFaced,
+        battedBall: draft.battedBall,
+        play: draft.play,
+        position: draft.position,
+        workout: draft.workout,
         angle: draft.angle,
         setting: draft.setting,
+        velo: draft.velo,
+        opponent: draft.opponent,
+        featured: draft.featured,
         date: draft.dateLabel,
         caption: draft.caption
       });
@@ -363,8 +394,17 @@
       url: useFile ? draft.url : draft.youtube.trim(),
       category: draft.category,
       pitch: draft.pitch,
+      result: draft.result,
+      pitchFaced: draft.pitchFaced,
+      battedBall: draft.battedBall,
+      play: draft.play,
+      position: draft.position,
+      workout: draft.workout,
       angle: draft.angle,
       setting: draft.setting,
+      velo: draft.velo,
+      opponent: draft.opponent,
+      featured: draft.featured,
       date: L.formatISODate(draft.dateISO),
       caption: draft.caption
     });
@@ -406,6 +446,9 @@
         const data = practice ? state.videos : await L.readVideos(request);
         const plan = L.prepareSave(data, action);
         if (!plan.ok) throw Object.assign(new Error(plan.error), { friendly: plan.error });
+        const reel = state.profile && L.featuredReel(state.profile, plan.data, plan.removedUrl);
+        if (reel) plan.profileJson = L.profileWithReel(state.profile, reel);
+        plan.reel = reel;
         if (!practice) {
           state.progressLabel = file ? "Sending it… don't close this page." : "Saving…";
           renderProgress();
@@ -431,6 +474,7 @@
         else throw err;
       }
       state.videos = plan.data;
+      if (plan.reel && state.profile) state.profile.highlightReel = plan.reel;
       state.busy = false;
       state.progress = 0;
       state.xhr = null;
@@ -505,8 +549,17 @@
       youtube: "",
       category: video.category || "",
       pitch: video.pitch || "",
+      result: video.result || "",
+      pitchFaced: video.pitchFaced || "",
+      battedBall: video.battedBall || "",
+      play: video.play || "",
+      position: video.position || "",
+      workout: video.workout || "",
       angle: video.angle || "",
       setting: video.setting || "",
+      velo: video.velo || "",
+      opponent: video.opponent || "",
+      featured: !!video.featured,
       caption: video.caption || "",
       dateISO: "",
       dateLabel: video.date || "",
@@ -548,11 +601,18 @@
 
   function tagFields() {
     const tags = L.tagsFor(state.draft.category);
-    let html = "";
-    if (tags.pitch) html += chips("pitch", "Pitch", tags.pitch, state.draft.pitch);
-    if (tags.angle) html += chips("angle", "Camera angle", tags.angle, state.draft.angle);
-    if (tags.setting) html += chips("setting", "Where", tags.setting, state.draft.setting);
-    return html;
+    return Object.keys(tags).map(key => chips(key, L.TAG_LABELS[key] || key, tags[key], state.draft[key])).join("");
+  }
+
+  function extraFields() {
+    const draft = state.draft;
+    const opponent = L.showOpponent(draft)
+      ? '<label class="field" for="opponent">Opponent <span class="optional">optional</span><input id="opponent" type="text" maxlength="80" autocomplete="off" placeholder="Marin Catholic" value="' + L.esc(draft.opponent) + '"></label>'
+      : "";
+    return '<label class="field" for="velo">Speed <span class="optional">optional</span><input id="velo" type="text" maxlength="40" autocomplete="off" placeholder="75 mph" value="' + L.esc(draft.velo) + '"></label>' +
+      opponent +
+      '<label class="toggle" for="featured"><input id="featured" type="checkbox"' + (draft.featured ? " checked" : "") + '><span>Feature this</span></label>' +
+      '<p class="fine">Puts this clip at the top of your site. Only one clip can be the highlight reel.</p>';
   }
 
   function alertHtml() {
@@ -623,7 +683,8 @@
 
   function rowHtml(video) {
     const key = L.esc(L.videoKey(video));
-    return '<article class="row"><div class="thumb">' + thumbHtml(video) + '</div><div class="row-copy"><h2>' + L.esc(video.title || "Video") + "</h2><p>" + L.esc(video.category || "") + "</p>" + (video.caption ? "<p class=\"cap\">" + L.esc(video.caption) + "</p>" : "") + '</div><div class="row-actions"><button type="button" data-action="edit" data-key="' + key + '">Edit</button><button type="button" class="danger" data-action="ask-delete" data-key="' + key + '">Delete</button></div></article>';
+    const featured = video.featured ? '<p class="reel-flag">At the top of your site</p>' : "";
+    return '<article class="row"><div class="thumb">' + thumbHtml(video) + '</div><div class="row-copy"><h2>' + L.esc(video.title || "Video") + "</h2><p>" + L.esc(video.category || "") + "</p>" + featured + (video.caption ? "<p class=\"cap\">" + L.esc(video.caption) + "</p>" : "") + '</div><div class="row-actions"><button type="button" data-action="edit" data-key="' + key + '">Edit</button><button type="button" class="danger" data-action="ask-delete" data-key="' + key + '">Delete</button></div></article>';
   }
 
   function blankHtml(video) {
@@ -664,22 +725,24 @@
   }
 
   function tagsStep() {
-    return shell("Tag it",
-      clipHtml() + "<p class=\"lead\">Tap any that fit. You can skip one.</p>" + tagFields(),
-      dock("Next", "next"));
+    const fields = tagFields();
+    const lead = fields
+      ? '<p class="lead">Tap any that fit. You can skip some.</p>' + fields
+      : '<p class="lead">No extra tags for a highlight. Speed and an opponent are on the next screen if you want them.</p>';
+    return shell("Tag it", clipHtml() + lead, dock("Next", "next"));
   }
 
   function detailsStep() {
     const hint = L.CAPTION_HINTS[state.draft.category] || "What happened in the clip.";
     const suggest = state.draft.titleDirty ? '<button type="button" class="text-btn" data-action="suggest">Fill in a title from my picks</button>' : '<p class="fine">Filled in from what you tapped. You can change it.</p>';
-    return shell("Caption",
-      clipHtml() +
+    return shell("Details",
+      '<label class="field" for="title">Title<input id="title" type="text" maxlength="120" autocomplete="off" value="' + L.esc(state.draft.title) + '"></label>' +
+      suggest +
       '<label class="field" for="caption">Caption<textarea id="caption" rows="3" placeholder="' + L.esc(hint) + '">' + L.esc(state.draft.caption) + "</textarea></label>" +
       '<p class="fine">Example: ' + L.esc(hint) + "</p>" +
       '<label class="field" for="date">Date<input id="date" type="date" value="' + L.esc(state.draft.dateISO) + '"></label>' +
       '<p class="fine" id="date-label">' + L.esc(L.formatISODate(state.draft.dateISO) || "Today") + "</p>" +
-      '<label class="field" for="title">Title<input id="title" type="text" maxlength="120" autocomplete="off" value="' + L.esc(state.draft.title) + '"></label>' +
-      suggest,
+      extraFields(),
       dock("See preview", "next"));
   }
 
@@ -697,10 +760,11 @@
       '<label class="field" for="title">Title<input id="title" type="text" maxlength="120" autocomplete="off" value="' + L.esc(state.draft.title) + '"></label>' +
       '<button type="button" class="text-btn" data-action="suggest">Fill in a title from my picks</button>' +
       chips("category", "Category", L.CATEGORIES, state.draft.category) +
-      tags +
+      (tags || '<p class="fine">No extra tags for a highlight.</p>') +
       '<label class="field" for="caption">Caption<textarea id="caption" rows="3" placeholder="' + L.esc(hint) + '">' + L.esc(state.draft.caption) + "</textarea></label>" +
       '<p class="fine">Example: ' + L.esc(hint) + "</p>" +
       (state.draft.dateLabel ? '<p class="fine">Date: ' + L.esc(state.draft.dateLabel) + "</p>" : "") +
+      extraFields() +
       '<button type="button" class="text-btn danger" data-action="ask-delete" data-key="' + L.esc(state.editingKey) + '">Delete this video</button>',
       dock("Save changes", "save"));
   }
@@ -740,8 +804,17 @@
       url: useFile ? draft.fileUrl : draft.youtube.trim(),
       category: draft.category,
       pitch: draft.pitch,
+      result: draft.result,
+      pitchFaced: draft.pitchFaced,
+      battedBall: draft.battedBall,
+      play: draft.play,
+      position: draft.position,
+      workout: draft.workout,
       angle: draft.angle,
       setting: draft.setting,
+      velo: draft.velo,
+      opponent: draft.opponent,
+      featured: draft.featured,
       date: L.formatISODate(draft.dateISO),
       caption: draft.caption
     });
@@ -776,6 +849,12 @@
       const label = $("#date-label");
       if (label) label.textContent = L.formatISODate(date.value) || "Pick a date";
     });
+    const velo = $("#velo");
+    if (velo) velo.addEventListener("input", () => { state.draft.velo = velo.value; });
+    const opponent = $("#opponent");
+    if (opponent) opponent.addEventListener("input", () => { state.draft.opponent = opponent.value; });
+    const featured = $("#featured");
+    if (featured) featured.addEventListener("change", () => { state.draft.featured = featured.checked; });
     const roll = $("#roll");
     if (roll) roll.addEventListener("change", () => takeFile(roll.files && roll.files[0]));
     const cam = $("#cam");
@@ -844,12 +923,13 @@
       if (group === "category") {
         state.draft.category = value;
         const allowed = L.tagsFor(value);
-        if (!allowed.pitch) state.draft.pitch = "";
-        if (!allowed.angle) state.draft.angle = "";
-        if (!allowed.setting) state.draft.setting = "";
+        Object.keys(L.TAG_LABELS).forEach(key => {
+          if (!allowed[key]) state.draft[key] = "";
+        });
       } else {
         state.draft[group] = state.draft[group] === value ? "" : value;
       }
+      if (!L.showOpponent(state.draft)) state.draft.opponent = "";
       syncTitle();
       state.error = "";
       render();

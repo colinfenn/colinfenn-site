@@ -23,20 +23,28 @@ const base = {
 
 test("suggested titles follow the taps", () => {
   assert.equal(L.suggestedTitle({ category: "Pitching", pitch: "Fastball", angle: "Open side", setting: "Bullpen" }), "Fastball · Open side · Bullpen");
-  assert.equal(L.suggestedTitle({ category: "Hitting", angle: "Front", setting: "Game" }), "Hitting · Front · Game");
-  assert.equal(L.suggestedTitle({ category: "Fielding", angle: "Side" }), "Fielding · Side");
-  assert.equal(L.suggestedTitle({ category: "Workouts/Training" }), "Workouts/Training");
-  assert.equal(L.suggestedTitle({ category: "Game Highlights", setting: "Game" }), "Game Highlights");
+  assert.equal(L.suggestedTitle({ category: "Hitting", result: "Double", angle: "Open side", setting: "Game" }), "Double · Open side · Game");
+  assert.equal(L.suggestedTitle({ category: "Fielding", play: "Diving catch", position: "CF", setting: "Game" }), "Diving catch · Game");
+  assert.equal(L.suggestedTitle({ category: "Workouts/Training", workout: "Long toss" }), "Long toss");
+  assert.equal(L.suggestedTitle({ category: "Game Highlights" }), "Game Highlights");
 });
 
-test("tag steps match the category", () => {
-  assert.deepEqual(Object.keys(L.tagsFor("Pitching")), ["pitch", "angle", "setting"]);
+test("every category uses the same five steps, with its own tags", () => {
+  assert.deepEqual(L.STEPS, ["video", "category", "tags", "details", "preview"]);
+  for (const category of ["", "Pitching", "Hitting", "Fielding", "Workouts/Training", "Game Highlights"]) {
+    assert.deepEqual(L.stepsFor(category), L.STEPS);
+  }
   assert.deepEqual(L.tagsFor("Pitching").pitch, ["Fastball", "Sinker", "Slider", "Curveball", "Changeup", "Cutter"]);
-  assert.equal(L.hasTags("Hitting"), true);
-  assert.equal(L.hasTags("Workouts/Training"), false);
+  assert.deepEqual(L.tagsFor("Hitting").result, ["Single", "Double", "Triple", "Home run", "Walk", "Line drive out"]);
+  assert.deepEqual(L.tagsFor("Hitting").pitchFaced, ["Fastball", "Breaking ball", "Off-speed"]);
+  assert.deepEqual(L.tagsFor("Hitting").battedBall, ["Line drive", "Ground ball", "Fly ball"]);
+  assert.deepEqual(L.tagsFor("Hitting").setting, ["Game", "Batting practice"]);
+  assert.deepEqual(L.tagsFor("Fielding").play, ["Catch", "Diving catch", "Throw/assist", "Ground ball", "Fly ball", "Relay"]);
+  assert.deepEqual(L.tagsFor("Fielding").position, ["LF", "CF", "RF", "P"]);
+  assert.deepEqual(L.tagsFor("Fielding").setting, ["Game", "Practice"]);
+  assert.deepEqual(L.tagsFor("Workouts/Training").workout, ["Velo", "Long toss", "Weights", "Speed/agility", "Bullpen"]);
   assert.equal(L.hasTags("Game Highlights"), false);
-  assert.deepEqual(L.stepsFor("Pitching"), ["video", "category", "tags", "details", "preview"]);
-  assert.deepEqual(L.stepsFor("Workouts/Training"), ["video", "category", "details", "preview"]);
+  assert.equal(L.hasTags("Workouts/Training"), true);
 });
 
 test("dates use the calendar day, not UTC shifting", () => {
@@ -126,6 +134,62 @@ test("file names stay inside media/videos", () => {
   assert.equal(L.extensionFor("clip.webm", ""), "webm");
   assert.equal(L.extensionFor("clip.m4v", "video/mp4"), "mp4");
   assert.equal(L.publicUrl(repoPath), "/" + repoPath);
+});
+
+test("optional speed, opponent, and one featured clip", () => {
+  const game = L.buildEntry({
+    title: "Double · Game",
+    type: "youtube",
+    url: "https://youtu.be/abcdefghijk",
+    category: "Hitting",
+    result: "Double",
+    pitchFaced: "Fastball",
+    battedBall: "Line drive",
+    setting: "Game",
+    velo: "75 mph",
+    opponent: "Marin Catholic",
+    featured: true,
+    date: "October 12, 2026",
+    caption: "Opposite field."
+  });
+  assert.equal(game.velo, "75 mph");
+  assert.equal(game.opponent, "Marin Catholic");
+  assert.equal(game.featured, true);
+  assert.deepEqual(L.filterTags(game), ["Double", "Fastball", "Line drive", "Game", "75 mph", "Marin Catholic"]);
+  const bullpen = L.buildEntry({
+    title: "Fastball",
+    type: "mp4",
+    url: "/media/videos/fastball.mp4",
+    category: "Pitching",
+    pitch: "Fastball",
+    setting: "Bullpen",
+    opponent: "Should not stick",
+    velo: "74 mph",
+    date: "October 12, 2026",
+    caption: ""
+  });
+  assert.equal(bullpen.opponent, undefined);
+  assert.equal(bullpen.velo, "74 mph");
+  const older = { title: "Old reel", type: "youtube", url: "https://youtu.be/aaaaaaaaaaa", category: "Game Highlights", featured: true, date: "", caption: "Old" };
+  const saved = L.prepareSave({ categories: L.CATEGORIES.slice(), videos: [older] }, { kind: "add", entry: game });
+  assert.equal(saved.data.videos[0].featured, true);
+  assert.equal(saved.data.videos[1].featured, undefined);
+  const profile = { name: "Colin Fenn", highlightReel: { url: older.url, title: "Old", caption: "Old" } };
+  const reel = L.featuredReel(profile, saved.data, "");
+  assert.deepEqual(reel, { url: game.url, title: game.title, caption: game.caption });
+  const cleared = L.prepareSave(saved.data, { kind: "update", key: L.videoKey(saved.data.videos[0]), entry: L.buildEntry({ ...game, featured: false }) });
+  assert.equal(cleared.data.videos[0].featured, undefined);
+  assert.deepEqual(L.featuredReel({ highlightReel: reel }, cleared.data, ""), { url: "", title: game.title, caption: "" });
+  const removed = L.prepareSave(saved.data, { kind: "delete", key: L.videoKey(saved.data.videos[0]) });
+  assert.equal(removed.removedUrl, game.url);
+  assert.deepEqual(L.featuredReel({ highlightReel: reel }, removed.data, removed.removedUrl), { url: "", title: "", caption: "" });
+});
+
+test("the public site filters every clip tag inside a tab", () => {
+  const src = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(src, /function clipTags\(v\)\{return \[v\.pitch,v\.result,v\.pitchFaced,v\.battedBall,v\.play,v\.position,v\.workout,v\.angle,v\.setting,v\.velo,v\.opponent\]/);
+  assert.match(src, /clipTags\(v\)\.includes\(f\)/);
+  assert.match(src, /v\.featured&&v\.url/);
 });
 
 test("the preview card uses the same markup as the site", () => {

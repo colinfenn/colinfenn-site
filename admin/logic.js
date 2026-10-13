@@ -8,6 +8,26 @@
   const PITCHES = ["Fastball", "Sinker", "Slider", "Curveball", "Changeup", "Cutter"];
   const ANGLES = ["Open side", "Behind mound", "Front", "Side"];
   const SETTINGS = ["Game", "Bullpen"];
+  const HITTING_RESULTS = ["Single", "Double", "Triple", "Home run", "Walk", "Line drive out"];
+  const PITCH_FACED = ["Fastball", "Breaking ball", "Off-speed"];
+  const BATTED_BALLS = ["Line drive", "Ground ball", "Fly ball"];
+  const HITTING_WHERE = ["Game", "Batting practice"];
+  const FIELD_PLAYS = ["Catch", "Diving catch", "Throw/assist", "Ground ball", "Fly ball", "Relay"];
+  const POSITIONS = ["LF", "CF", "RF", "P"];
+  const FIELD_WHERE = ["Game", "Practice"];
+  const WORKOUTS = ["Velo", "Long toss", "Weights", "Speed/agility", "Bullpen"];
+  const STEPS = ["video", "category", "tags", "details", "preview"];
+  const TAG_LABELS = {
+    pitch: "Pitch",
+    result: "Result",
+    pitchFaced: "Pitch faced",
+    battedBall: "Batted ball",
+    play: "Play",
+    position: "Position",
+    workout: "Workout",
+    angle: "Camera angle",
+    setting: "Where"
+  };
   const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
   const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -21,7 +41,9 @@
 
   function tagsFor(category) {
     if (category === "Pitching") return { pitch: PITCHES, angle: ANGLES, setting: SETTINGS };
-    if (category === "Hitting" || category === "Fielding") return { angle: ANGLES, setting: SETTINGS };
+    if (category === "Hitting") return { result: HITTING_RESULTS, pitchFaced: PITCH_FACED, battedBall: BATTED_BALLS, angle: ANGLES, setting: HITTING_WHERE };
+    if (category === "Fielding") return { play: FIELD_PLAYS, position: POSITIONS, angle: ANGLES, setting: FIELD_WHERE };
+    if (category === "Workouts/Training") return { workout: WORKOUTS };
     return {};
   }
 
@@ -29,18 +51,22 @@
     return Object.keys(tagsFor(category)).length > 0;
   }
 
-  function stepsFor(category) {
-    const steps = ["video", "category"];
-    if (hasTags(category)) steps.push("tags");
-    steps.push("details", "preview");
-    return steps;
+  function stepsFor() {
+    return STEPS.slice();
+  }
+
+  function showOpponent(draft) {
+    return !!draft && (draft.category === "Game Highlights" || draft.setting === "Game");
   }
 
   function suggestedTitle(draft) {
     const parts = [];
-    if (draft.category === "Pitching" && draft.pitch) parts.push(draft.pitch);
-    else if (draft.category) parts.push(draft.category);
     const tags = tagsFor(draft.category);
+    if (draft.category === "Pitching" && draft.pitch) parts.push(draft.pitch);
+    else if (draft.category === "Hitting" && draft.result) parts.push(draft.result);
+    else if (draft.category === "Fielding" && draft.play) parts.push(draft.play);
+    else if (draft.category === "Workouts/Training" && draft.workout) parts.push(draft.workout);
+    else if (draft.category) parts.push(draft.category);
     if (tags.angle && draft.angle) parts.push(draft.angle);
     if (tags.setting && draft.setting) parts.push(draft.setting);
     return parts.join(" · ");
@@ -147,17 +173,28 @@
       type: draft.type,
       url: String(draft.url || "").trim()
     };
-    if (tags.pitch && draft.pitch) entry.pitch = draft.pitch;
-    if (tags.angle && draft.angle) entry.angle = draft.angle;
-    if (tags.setting && draft.setting) entry.setting = draft.setting;
+    Object.keys(TAG_LABELS).forEach(key => {
+      if (tags[key] && draft[key]) entry[key] = draft[key];
+    });
+    const velo = String(draft.velo || "").trim();
+    if (velo) entry.velo = velo;
+    const opponent = String(draft.opponent || "").trim();
+    if (opponent && showOpponent(draft)) entry.opponent = opponent;
     entry.date = draft.date || "";
     entry.caption = String(draft.caption || "").trim();
     entry.category = draft.category;
+    if (draft.featured) entry.featured = true;
     return entry;
   }
 
   function cardTags(video) {
-    return [video.pitch, video.angle, video.setting, video.date].filter(Boolean);
+    return ["pitch", "result", "pitchFaced", "battedBall", "play", "position", "workout", "angle", "setting", "velo", "opponent", "date"]
+      .map(key => video[key])
+      .filter(Boolean);
+  }
+
+  function filterTags(video) {
+    return cardTags(video).filter(tag => tag !== video.date);
   }
 
   function cardHtml(video) {
@@ -175,8 +212,17 @@
       video.caption || "",
       video.date || "",
       video.pitch || "",
+      video.result || "",
+      video.pitchFaced || "",
+      video.battedBall || "",
+      video.play || "",
+      video.position || "",
+      video.workout || "",
       video.angle || "",
-      video.setting || ""
+      video.setting || "",
+      video.velo || "",
+      video.opponent || "",
+      video.featured ? "1" : ""
     ]);
   }
 
@@ -200,6 +246,38 @@
     return "";
   }
 
+  function keepOneFeatured(videos, keeper) {
+    if (!keeper || !keeper.featured) return;
+    videos.forEach(video => {
+      if (video !== keeper) delete video.featured;
+    });
+  }
+
+  function featuredReel(profile, videos, removedUrl) {
+    const list = (videos && videos.videos) || [];
+    const current = {
+      url: "",
+      title: "",
+      caption: "",
+      ...((profile && profile.highlightReel) || {})
+    };
+    const featured = list.find(video => video.featured && video.url && video.type !== "placeholder");
+    if (featured) {
+      const next = { url: featured.url, title: featured.title || "", caption: featured.caption || "" };
+      if (current.url === next.url && (current.title || "") === next.title && (current.caption || "") === next.caption) return null;
+      return next;
+    }
+    if (removedUrl && current.url === removedUrl) return { url: "", title: "", caption: "" };
+    if (current.url && list.some(video => video.url === current.url)) return { url: "", title: current.title || "", caption: "" };
+    return null;
+  }
+
+  function profileWithReel(profile, reel) {
+    const copy = JSON.parse(JSON.stringify(profile || {}));
+    copy.highlightReel = { url: reel.url || "", title: reel.title || "", caption: reel.caption || "" };
+    return JSON.stringify(copy, null, 2) + "\n";
+  }
+
   function serializeVideos(data) {
     return JSON.stringify({ categories: data.categories, videos: data.videos }, null, 2) + "\n";
   }
@@ -210,12 +288,14 @@
       const problem = validateEntry(action.entry);
       if (problem) return { ok: false, error: problem };
       next.videos.unshift(action.entry);
+      keepOneFeatured(next.videos, action.entry);
       return {
         ok: true,
         data: next,
         json: serializeVideos(next),
         message: "Post video: " + action.entry.title,
-        removePaths: []
+        removePaths: [],
+        removedUrl: ""
       };
     }
     const index = next.videos.findIndex(video => videoKey(video) === action.key);
@@ -229,19 +309,22 @@
         data: next,
         json: serializeVideos(next),
         message: "Remove video: " + (removed.title || "Untitled"),
-        removePaths: removePath ? [removePath] : []
+        removePaths: removePath ? [removePath] : [],
+        removedUrl: removed.url || ""
       };
     }
     if (action.kind === "update") {
       const problem = validateEntry(action.entry);
       if (problem) return { ok: false, error: problem };
       next.videos[index] = action.entry;
+      keepOneFeatured(next.videos, action.entry);
       return {
         ok: true,
         data: next,
         json: serializeVideos(next),
         message: "Update video: " + action.entry.title,
-        removePaths: []
+        removePaths: [],
+        removedUrl: ""
       };
     }
     return { ok: false, error: "That didn't work. Try again." };
@@ -317,6 +400,13 @@
       encoding: "base64"
     });
     tree.push({ path: "data/videos.json", mode: "100644", type: "blob", sha: jsonBlob.sha });
+    if (plan.profileJson) {
+      const profileBlob = await request("POST", repoPath("/git/blobs"), {
+        content: utf8ToBase64(plan.profileJson),
+        encoding: "base64"
+      });
+      tree.push({ path: "data/profile.json", mode: "100644", type: "blob", sha: profileBlob.sha });
+    }
     (plan.removePaths || []).forEach(path => {
       tree.push({ path: path, mode: "100644", type: "blob", sha: null });
     });
@@ -363,12 +453,24 @@
     PITCHES,
     ANGLES,
     SETTINGS,
+    HITTING_RESULTS,
+    PITCH_FACED,
+    BATTED_BALLS,
+    FIELD_PLAYS,
+    POSITIONS,
+    WORKOUTS,
+    STEPS,
+    TAG_LABELS,
     MAX_VIDEO_BYTES,
     CAPTION_HINTS,
     tagsFor,
     hasTags,
     stepsFor,
+    showOpponent,
     suggestedTitle,
+    filterTags,
+    featuredReel,
+    profileWithReel,
     todayISO,
     formatISODate,
     stamp,

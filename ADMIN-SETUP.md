@@ -71,11 +71,11 @@ Day to day he uses the simple page, not the full editor.
 5. Tap **Add Video**.
 6. Choose a clip from the camera roll, record one, or paste a YouTube link. A video over 50 MB stays off the site. The page asks him to put that one on YouTube (unlisted is fine) and paste the link.
 7. Tap a category: Pitching, Hitting, Fielding, Workouts/Training, or Game Highlights. Those words are the tabs on the site.
-8. For pitching, tap the pitch (fastball, sinker, slider, curveball, changeup, or cutter), the camera angle, and Game or Bullpen. Hitting and fielding ask for angle and Game or Bullpen. He can skip a tag.
-9. Type a caption. The date starts as today. The title fills in from what he tapped, and he can change it.
+8. Tap the tags for that category. Pitching asks for the pitch, the camera angle, and Game or Bullpen. Hitting asks for the result, the pitch he faced, the batted ball, the angle, and Game or batting practice. Fielding asks for the play, the position (LF, CF, RF, or P), the angle, and Game or practice. Workouts ask for the workout type. Highlights skip extra tags. He can skip any tag.
+9. Type a caption. The date starts as today. The title fills in from what he tapped, and he can change it. Speed (like 75 mph) and, for a game, the opponent are optional. **Feature this** puts that one clip in the highlight reel at the top of the site. Turning it on for a new clip replaces the old one.
 10. Check the preview. It is the same card the site shows. Tap **Post it**. Leave the page open until it says **Posted**. Wi-Fi is easier than cell data.
 11. The live site updates after Netlify finishes the deploy, usually a minute or two.
-12. **My videos** lists what he posted. **Edit** changes the title, caption, category, or tags. **Delete** takes the video off the site. Blank “Video coming soon” cards are tucked at the bottom so he can remove one after he replaces it.
+12. **My videos** lists what he posted. **Edit** changes the title, caption, category, tags, speed, opponent, or the feature switch. **Delete** takes the video off the site. Blank “Video coming soon” cards are tucked at the bottom so he can remove one after he replaces it.
 
 Uploaded videos are stored in this repo under `media/videos`. YouTube links are stored as links. A phone video can be an MP4, MOV, or WebM. MOV is what an iPhone records, and it plays on iPhones.
 

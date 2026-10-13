@@ -68,9 +68,10 @@
       type: inferType(url),
       url: url
     };
-    if (text(v.pitch)) item.pitch = text(v.pitch);
-    if (text(v.angle)) item.angle = text(v.angle);
-    if (text(v.setting)) item.setting = text(v.setting);
+    ['pitch', 'result', 'pitchFaced', 'battedBall', 'play', 'position', 'workout', 'angle', 'setting', 'velo', 'opponent'].forEach(function (key) {
+      if (text(v[key])) item[key] = text(v[key]);
+    });
+    if (v.featured === true || v.featured === 'true') item.featured = true;
     item.date = v.date || '';
     item.caption = v.caption || '';
     item.category = v.category || 'Pitching';
@@ -87,8 +88,17 @@
       youtube: isFile ? '' : url,
       file: isFile ? url : '',
       pitch: v.pitch || '',
+      result: v.result || '',
+      pitchFaced: v.pitchFaced || '',
+      battedBall: v.battedBall || '',
+      play: v.play || '',
+      position: v.position || '',
+      workout: v.workout || '',
       angle: v.angle || '',
       setting: v.setting || '',
+      velo: v.velo || '',
+      opponent: v.opponent || '',
+      featured: !!v.featured,
       date: v.date || '',
       caption: v.caption || ''
     };
