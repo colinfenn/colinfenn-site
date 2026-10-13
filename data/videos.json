@@ -8,6 +8,17 @@
   ],
   "videos": [
     {
+      "title": "Pitching",
+      "type": "mp4",
+      "url": "/media/videos/pitching-20261012-195823.mp4",
+      "date": "October 12, 2026",
+      "caption": "This is a test video",
+      "category": "Pitching",
+      "tags": [
+        "K"
+      ]
+    },
+    {
       "title": "Sinker (Placeholder)",
       "type": "placeholder",
       "url": "",
