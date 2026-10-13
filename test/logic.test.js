@@ -22,8 +22,8 @@ const base = {
 };
 
 test("suggested titles follow the taps", () => {
-  assert.equal(L.suggestedTitle({ category: "Pitching", pitch: "Fastball", angle: "Open side", setting: "Bullpen" }), "Fastball · Bullpen");
-  assert.equal(L.suggestedTitle({ category: "Hitting", result: "Double", angle: "Open side", setting: "Game" }), "Double · Game");
+  assert.equal(L.suggestedTitle({ category: "Pitching", pitch: "Fastball", angle: "Open side", setting: "Bullpen" }), "Fastball · Open side · Bullpen");
+  assert.equal(L.suggestedTitle({ category: "Hitting", result: "Double", angle: "Open side", setting: "Game" }), "Double · Open side · Game");
   assert.equal(L.suggestedTitle({ category: "Fielding", play: "Diving catch", position: "CF", setting: "Game" }), "Diving catch · Game");
   assert.equal(L.suggestedTitle({ category: "Workouts/Training", workout: "Long toss" }), "Long toss");
   assert.equal(L.suggestedTitle({ category: "Game Highlights" }), "Game Highlights");
@@ -35,13 +35,17 @@ test("every category uses the same five steps, with its own tags", () => {
     assert.deepEqual(L.stepsFor(category), L.STEPS);
   }
   assert.deepEqual(L.tagsFor("Pitching").pitch, ["Fastball", "Sinker", "Slider", "Curveball", "Changeup", "Cutter"]);
+  assert.deepEqual(L.tagsFor("Pitching").angle, ["Open side", "Behind mound", "Front", "Side"]);
   assert.deepEqual(L.tagsFor("Hitting").result, ["Single", "Double", "Triple", "Home run", "Walk", "Line drive out"]);
   assert.deepEqual(L.tagsFor("Hitting").pitchFaced, ["Fastball", "Breaking ball", "Off-speed"]);
   assert.deepEqual(L.tagsFor("Hitting").battedBall, ["Line drive", "Ground ball", "Fly ball"]);
   assert.deepEqual(L.tagsFor("Hitting").setting, ["Game", "Batting practice"]);
+  assert.deepEqual(L.tagsFor("Hitting").angle, L.tagsFor("Pitching").angle);
   assert.deepEqual(L.tagsFor("Fielding").play, ["Catch", "Diving catch", "Throw/assist", "Ground ball", "Fly ball", "Relay"]);
   assert.deepEqual(L.tagsFor("Fielding").position, ["LF", "CF", "RF", "P"]);
   assert.deepEqual(L.tagsFor("Fielding").setting, ["Game", "Practice"]);
+  assert.deepEqual(L.tagsFor("Fielding").angle, L.tagsFor("Pitching").angle);
+  assert.equal(L.tagsFor("Workouts/Training").angle, undefined);
   assert.deepEqual(L.tagsFor("Workouts/Training").workout, ["Velo", "Long toss", "Weights", "Speed/agility", "Bullpen"]);
   assert.equal(L.hasTags("Game Highlights"), false);
   assert.equal(L.hasTags("Workouts/Training"), true);
@@ -65,7 +69,7 @@ test("a pitching post keeps the site's video shape and drops unused tags", () =>
     date: "October 12, 2026",
     caption: "First-pitch slider, swing and miss."
   });
-  assert.deepEqual(Object.keys(entry), ["title", "type", "url", "pitch", "setting", "date", "caption", "category"]);
+  assert.deepEqual(Object.keys(entry), ["title", "type", "url", "pitch", "angle", "setting", "date", "caption", "category"]);
   const saved = L.prepareSave(base, { kind: "add", entry });
   assert.equal(saved.ok, true);
   assert.equal(saved.data.videos[0].title, entry.title);
@@ -89,7 +93,7 @@ test("leaving pitching removes the pitch tag", () => {
     caption: "Opposite-field double."
   });
   assert.equal(entry.pitch, undefined);
-  assert.equal(entry.angle, undefined);
+  assert.equal(entry.angle, "Open side");
   const saved = L.prepareSave(base, { kind: "update", key: L.videoKey(original), entry });
   assert.equal(saved.ok, true);
   assert.equal(saved.data.videos.length, 1);
@@ -187,7 +191,7 @@ test("optional speed, opponent, and one featured clip", () => {
 
 test("the public site filters every clip tag inside a tab", () => {
   const src = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
-  assert.match(src, /function clipTags\(v\)\{return \[v\.pitch,v\.result,v\.pitchFaced,v\.battedBall,v\.play,v\.position,v\.workout,v\.setting,v\.velo,v\.opponent,\.\.\.\(Array\.isArray\(v\.tags\)\?v\.tags:\[\]\)\]/);
+  assert.match(src, /function clipTags\(v\)\{return \[v\.pitch,v\.result,v\.pitchFaced,v\.battedBall,v\.play,v\.position,v\.workout,v\.angle,v\.setting,v\.velo,v\.opponent,\.\.\.\(Array\.isArray\(v\.tags\)\?v\.tags:\[\]\)\]/);
   assert.match(src, /clipTags\(v\)\.includes\(f\)/);
   assert.match(src, /v\.featured&&v\.url/);
 });
@@ -272,9 +276,19 @@ test("reading videos.json decodes GitHub's base64 content", async () => {
   assert.equal(L.isReal(data.videos[0]), false);
 });
 
-test("no category has a camera-angle tag group", () => {
-  for (const category of L.CATEGORIES) assert.equal(L.tagsFor(category).angle, undefined);
-  assert.equal(L.TAG_LABELS.angle, undefined);
+test("pitching, hitting, and fielding share the camera-angle chips", () => {
+  const angles = ["Open side", "Behind mound", "Front", "Side"];
+  assert.deepEqual(L.tagsFor("Pitching").angle, angles);
+  assert.deepEqual(L.tagsFor("Hitting").angle, angles);
+  assert.deepEqual(L.tagsFor("Fielding").angle, angles);
+  assert.equal(L.tagsFor("Workouts/Training").angle, undefined);
+  assert.equal(L.tagsFor("Game Highlights").angle, undefined);
+  assert.equal(L.TAG_LABELS.angle, "Camera angle");
+  const hitting = L.buildEntry({ title: "Double · Open side · Game", type: "youtube", url: "https://youtu.be/dQw4w9WgXcQ", category: "Hitting", result: "Double", angle: "Open side", setting: "Game", date: "October 12, 2026", caption: "" });
+  assert.equal(hitting.angle, "Open side");
+  assert.ok(L.filterTags(hitting).includes("Open side"));
+  const workout = L.buildEntry({ title: "Long toss", type: "youtube", url: "https://youtu.be/dQw4w9WgXcQ", category: "Workouts/Training", workout: "Long toss", angle: "Front", date: "October 12, 2026", caption: "" });
+  assert.equal(workout.angle, undefined);
 });
 
 test("custom tags are trimmed, deduped, capped, and saved with the video", () => {
