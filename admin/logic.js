@@ -25,9 +25,10 @@
     play: "Play",
     position: "Position",
     workout: "Workout",
-    angle: "Camera angle",
     setting: "Where"
   };
+  const MAX_CUSTOM_TAG = 30;
+  const MAX_CUSTOM_TAGS = 10;
   const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
   const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
@@ -40,9 +41,9 @@
   };
 
   function tagsFor(category) {
-    if (category === "Pitching") return { pitch: PITCHES, angle: ANGLES, setting: SETTINGS };
-    if (category === "Hitting") return { result: HITTING_RESULTS, pitchFaced: PITCH_FACED, battedBall: BATTED_BALLS, angle: ANGLES, setting: HITTING_WHERE };
-    if (category === "Fielding") return { play: FIELD_PLAYS, position: POSITIONS, angle: ANGLES, setting: FIELD_WHERE };
+    if (category === "Pitching") return { pitch: PITCHES, setting: SETTINGS };
+    if (category === "Hitting") return { result: HITTING_RESULTS, pitchFaced: PITCH_FACED, battedBall: BATTED_BALLS, setting: HITTING_WHERE };
+    if (category === "Fielding") return { play: FIELD_PLAYS, position: POSITIONS, setting: FIELD_WHERE };
     if (category === "Workouts/Training") return { workout: WORKOUTS };
     return {};
   }
@@ -53,6 +54,27 @@
 
   function stepsFor() {
     return STEPS.slice();
+  }
+
+  function cleanTag(text) {
+    return String(text == null ? "" : text).replace(/\s+/g, " ").trim().slice(0, MAX_CUSTOM_TAG).trim();
+  }
+
+  function normalizeTags(list) {
+    const out = [];
+    const seen = new Set();
+    (Array.isArray(list) ? list : []).forEach(item => {
+      const tag = cleanTag(item);
+      const key = tag.toLowerCase();
+      if (!tag || seen.has(key) || out.length >= MAX_CUSTOM_TAGS) return;
+      seen.add(key);
+      out.push(tag);
+    });
+    return out;
+  }
+
+  function addCustomTag(list, text) {
+    return normalizeTags((Array.isArray(list) ? list : []).concat([text]));
   }
 
   function showOpponent(draft) {
@@ -67,7 +89,6 @@
     else if (draft.category === "Fielding" && draft.play) parts.push(draft.play);
     else if (draft.category === "Workouts/Training" && draft.workout) parts.push(draft.workout);
     else if (draft.category) parts.push(draft.category);
-    if (tags.angle && draft.angle) parts.push(draft.angle);
     if (tags.setting && draft.setting) parts.push(draft.setting);
     return parts.join(" · ");
   }
@@ -183,13 +204,16 @@
     entry.date = draft.date || "";
     entry.caption = String(draft.caption || "").trim();
     entry.category = draft.category;
+    const custom = normalizeTags(draft.tags);
+    if (custom.length) entry.tags = custom;
     if (draft.featured) entry.featured = true;
     return entry;
   }
 
   function cardTags(video) {
-    return ["pitch", "result", "pitchFaced", "battedBall", "play", "position", "workout", "angle", "setting", "velo", "opponent", "date"]
+    return ["pitch", "result", "pitchFaced", "battedBall", "play", "position", "workout", "setting", "velo", "opponent"]
       .map(key => video[key])
+      .concat(normalizeTags(video.tags), [video.date])
       .filter(Boolean);
   }
 
@@ -222,7 +246,8 @@
       video.setting || "",
       video.velo || "",
       video.opponent || "",
-      video.featured ? "1" : ""
+      video.featured ? "1" : "",
+      normalizeTags(video.tags).join("|")
     ]);
   }
 
@@ -461,6 +486,10 @@
     WORKOUTS,
     STEPS,
     TAG_LABELS,
+    MAX_CUSTOM_TAG,
+    cleanTag,
+    normalizeTags,
+    addCustomTag,
     MAX_VIDEO_BYTES,
     CAPTION_HINTS,
     tagsFor,

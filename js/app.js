@@ -59,7 +59,7 @@
     if(r.url){el.innerHTML=media(r);el.classList.add('has')}
     const cap=$('#reel-caption'); if(cap) cap.textContent=r.caption||'';
   }
-  function clipTags(v){return [v.pitch,v.result,v.pitchFaced,v.battedBall,v.play,v.position,v.workout,v.angle,v.setting,v.velo,v.opponent].filter(Boolean)}
+  function clipTags(v){return [v.pitch,v.result,v.pitchFaced,v.battedBall,v.play,v.position,v.workout,v.setting,v.velo,v.opponent,...(Array.isArray(v.tags)?v.tags:[])].filter(Boolean)}
   function media(v){
     const t=v.type||(ytId(v.url)?'youtube':/\.(mp4|webm|mov)(\?|$)/i.test(v.url||'')?'mp4':'placeholder');
     if(t==='youtube'&&ytId(v.url))return `<iframe src="https://www.youtube-nocookie.com/embed/${ytId(v.url)}" title="${esc(v.title)}" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;

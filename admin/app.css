@@ -344,3 +344,10 @@ iframe#preview {
 @media (prefers-reduced-motion: reduce) {
   * { scroll-behavior: auto !important; transition: none !important; }
 }
+
+.custom-tags { margin-top: 18px; }
+.custom-tags .chips { margin-bottom: 10px; }
+.tag-add { display: flex; gap: 8px; }
+.tag-add input { flex: 1; min-width: 0; min-height: 44px; padding: 0 12px; border: 1px solid #c9d2df; border-radius: 10px; font: inherit; font-size: 16px; }
+.btn-small { width: auto; min-height: 44px; padding: 0 18px; }
+.chip-custom span { margin-left: 6px; opacity: .8; }

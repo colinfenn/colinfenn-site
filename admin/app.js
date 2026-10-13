@@ -107,7 +107,8 @@
       play: "",
       position: "",
       workout: "",
-      angle: "",
+      tags: [],
+      tagText: "",
       setting: "",
       velo: "",
       opponent: "",
@@ -378,7 +379,7 @@
         play: draft.play,
         position: draft.position,
         workout: draft.workout,
-        angle: draft.angle,
+        tags: draft.tags,
         setting: draft.setting,
         velo: draft.velo,
         opponent: draft.opponent,
@@ -400,7 +401,7 @@
       play: draft.play,
       position: draft.position,
       workout: draft.workout,
-      angle: draft.angle,
+      tags: draft.tags,
       setting: draft.setting,
       velo: draft.velo,
       opponent: draft.opponent,
@@ -555,7 +556,8 @@
       play: video.play || "",
       position: video.position || "",
       workout: video.workout || "",
-      angle: video.angle || "",
+      tags: L.normalizeTags(video.tags),
+      tagText: "",
       setting: video.setting || "",
       velo: video.velo || "",
       opponent: video.opponent || "",
@@ -597,6 +599,25 @@
     }).join("");
     const wide = group === "category" ? " chips-wide" : "";
     return '<fieldset><legend>' + label + '</legend><div class="chips' + wide + '">' + buttons + "</div></fieldset>";
+  }
+
+  function customTagHtml() {
+    const tags = state.draft.tags || [];
+    const chosen = tags.map((tag, i) => '<button type="button" class="chip chip-custom" data-action="remove-tag" data-index="' + i + '" aria-pressed="true" aria-label="Remove tag ' + L.esc(tag) + '">' + L.esc(tag) + ' <span aria-hidden="true">×</span></button>').join("");
+    return '<fieldset class="custom-tags"><legend>Add your own tag <span class="optional">optional</span></legend>' +
+      (chosen ? '<div class="chips">' + chosen + "</div>" : "") +
+      '<div class="tag-add"><input id="tag-text" type="text" maxlength="' + L.MAX_CUSTOM_TAG + '" autocomplete="off" enterkeyhint="done" placeholder="Walk-off, vs. lefty, 1st inning…" aria-label="Your own tag" value="' + L.esc(state.draft.tagText || "") + '"><button type="button" class="btn btn-secondary btn-small" data-action="add-tag">Add</button></div>' +
+      '<p class="fine">Tap a tag to remove it.</p></fieldset>';
+  }
+
+  function addTagFromInput() {
+    const input = $("#tag-text");
+    const text = input ? input.value : state.draft.tagText;
+    state.draft.tags = L.addCustomTag(state.draft.tags, text);
+    state.draft.tagText = "";
+    render();
+    const again = $("#tag-text");
+    if (again) again.focus();
   }
 
   function tagFields() {
@@ -728,8 +749,8 @@
     const fields = tagFields();
     const lead = fields
       ? '<p class="lead">Tap any that fit. You can skip some.</p>' + fields
-      : '<p class="lead">No extra tags for a highlight. Speed and an opponent are on the next screen if you want them.</p>';
-    return shell("Tag it", clipHtml() + lead, dock("Next", "next"));
+      : '<p class="lead">No set tags for a highlight. Add your own below if you want. Speed and an opponent are on the next screen.</p>';
+    return shell("Tag it", clipHtml() + lead + customTagHtml(), dock("Next", "next"));
   }
 
   function detailsStep() {
@@ -760,7 +781,7 @@
       '<label class="field" for="title">Title<input id="title" type="text" maxlength="120" autocomplete="off" value="' + L.esc(state.draft.title) + '"></label>' +
       '<button type="button" class="text-btn" data-action="suggest">Fill in a title from my picks</button>' +
       chips("category", "Category", L.CATEGORIES, state.draft.category) +
-      (tags || '<p class="fine">No extra tags for a highlight.</p>') +
+      (tags || '<p class="fine">No set tags for a highlight.</p>') + customTagHtml() +
       '<label class="field" for="caption">Caption<textarea id="caption" rows="3" placeholder="' + L.esc(hint) + '">' + L.esc(state.draft.caption) + "</textarea></label>" +
       '<p class="fine">Example: ' + L.esc(hint) + "</p>" +
       (state.draft.dateLabel ? '<p class="fine">Date: ' + L.esc(state.draft.dateLabel) + "</p>" : "") +
@@ -810,7 +831,7 @@
       play: draft.play,
       position: draft.position,
       workout: draft.workout,
-      angle: draft.angle,
+      tags: draft.tags,
       setting: draft.setting,
       velo: draft.velo,
       opponent: draft.opponent,
@@ -855,6 +876,15 @@
     if (opponent) opponent.addEventListener("input", () => { state.draft.opponent = opponent.value; });
     const featured = $("#featured");
     if (featured) featured.addEventListener("change", () => { state.draft.featured = featured.checked; });
+    const tagText = $("#tag-text");
+    if (tagText) {
+      tagText.addEventListener("input", () => { state.draft.tagText = tagText.value; });
+      tagText.addEventListener("keydown", event => {
+        if (event.key !== "Enter") return;
+        event.preventDefault();
+        if (tagText.value.trim()) addTagFromInput();
+      });
+    }
     const roll = $("#roll");
     if (roll) roll.addEventListener("change", () => takeFile(roll.files && roll.files[0]));
     const cam = $("#cam");
@@ -935,6 +965,13 @@
       render();
       const again = app.querySelector('[data-group="' + group + '"][data-value="' + CSS.escape(value) + '"]');
       if (again) again.focus();
+    } else if (action === "add-tag") addTagFromInput();
+    else if (action === "remove-tag") {
+      const index = Number(control.dataset.index);
+      state.draft.tags = (state.draft.tags || []).filter((_, i) => i !== index);
+      render();
+      const input = $("#tag-text");
+      if (input) input.focus();
     } else if (action === "suggest") {
       state.draft.titleDirty = false;
       syncTitle();
