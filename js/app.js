@@ -11,6 +11,15 @@
     return String(school || "").replace(/\s+High School\b/i, " HS").replace(/\s+/g, " ").trim();
   }
 
+  const TROPHY = '<svg viewBox="0 0 24 24" focusable="false"><path fill="currentColor" d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H8v2h8v-2h-3v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z"/></svg>';
+
+  function honorCard(h) {
+    const org = schoolShort(h.org);
+    const place = [org, h.level].filter(v => v && !isPh(v)).join(" ");
+    const sub = [h.season, place].filter(v => v && !isPh(v)).join(" · ");
+    return `<li><span class="trophy" aria-hidden="true">${TROPHY}</span><div class="honor-copy"><strong>${esc(h.title)}</strong><div class="m">${esc(sub)}</div></div></li>`;
+  }
+
   function weightLabel(weight) {
     const match = String(weight || "").match(/\d+(?:\.\d+)?/);
     return match ? match[0] : "";
@@ -61,18 +70,11 @@
     const facts = [["Height", p.height], ["Weight", weightLabel(p.weight) || p.weight], ["GPA", gpa], ["B/T", bt]];
     $("#keynums").innerHTML = facts.map(([k, v]) => `<li><b>${isPh(v) ? "—" : esc(v)}</b><span>${esc(k)}</span></li>`).join("");
     const hon = p.honors || [];
-    const featured = hon.find(h => h.featured) || hon[0];
-    const award = $("#award");
-    if (award && featured) {
-      const org = String(featured.org || "").replace(/\s+High School\b/i, " HS");
-      award.textContent = `🏆 ${featured.title} · ${org} · ${featured.season}`;
-    }
-    const rest = hon.filter(h => h !== featured);
     const list = $("#honors-list");
     if (list) {
-      if (rest.length) {
+      if (hon.length) {
         list.hidden = false;
-        list.innerHTML = rest.map(h => `<li><span class="trophy" aria-hidden="true">🏆</span><div><strong>${esc(h.title)}</strong><div class="m">${esc([h.org, h.season && h.season + " season"].filter(Boolean).join(" · "))}</div></div></li>`).join("");
+        list.innerHTML = hon.map(honorCard).join("");
       } else list.remove();
     }
     if (!reelLocked) paintReel(p.highlightReel || {});

@@ -14,10 +14,10 @@
   "tagline": "Two-way player: left-handed pitcher with a five-pitch mix and outfielder.",
   "honors": [
     {
-      "title": "Freshman Team MVP",
+      "title": "Team MVP",
       "org": "San Marin High School",
       "season": "2026",
-      "featured": true
+      "level": "Freshman"
     }
   ],
   "academics": {
