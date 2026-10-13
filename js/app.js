@@ -83,34 +83,29 @@
       $("#email").href = "mailto:" + p.email;
       $("#email").textContent = p.email;
     }
-    $("#coaches").innerHTML = (p.coaches || []).map(c => `<div class="coach"><div class="role">${esc(c.role)}</div><div class="nm">${val(c.name)}</div><div>${esc(c.team || "")}</div>${c.email ? `<div><a href="mailto:${esc(c.email)}">${esc(c.email)}</a></div>` : ""}${c.phone ? `<div>${esc(c.phone)}</div>` : ""}</div>`).join("");
+    const coaches = (p.coaches || []).filter(c => c && !isPh(c.name));
+    const coachBox = $("#coaches");
+    if (coachBox) {
+      if (!coaches.length) coachBox.remove();
+      else coachBox.innerHTML = coaches.map(c => `<div class="coach"><div class="role">${esc(c.role)}</div><div class="nm">${esc(c.name)}</div><div>${esc(c.team || "")}</div>${c.email ? `<div><a href="mailto:${esc(c.email)}">${esc(c.email)}</a></div>` : ""}${c.phone ? `<div>${esc(c.phone)}</div>` : ""}</div>`).join("");
+    }
   }).catch(e => console.warn("profile.json not loaded; showing built-in fallback", e));
 
-  function freshmanBlock(table) {
-    const row = (table.rows || []).find(r => /freshman/i.test(r.team || "")) || (table.rows || [])[0];
-    if (!row) return "";
-    const cells = (table.columns || []).filter(c => c.key !== "season" && c.key !== "team" && row[c.key]);
-    return `<div class="fresh"><h3>${esc(table.title)}</h3><ul class="fresh-nums">${cells.map(c => `<li><b>${esc(row[c.key])}</b><span>${esc(c.label)}</span></li>`).join("")}</ul></div>`;
+  function statGroup(table) {
+    const rows = table.rows || [];
+    const blocks = rows.map(row => {
+      const cells = (table.columns || []).filter(c => c.key !== "season" && c.key !== "team" && row[c.key] != null && String(row[c.key]) !== "");
+      const line = [row.season, row.team].filter(Boolean).join(" · ");
+      const tiles = cells.map(c => `<li><b>${esc(row[c.key])}</b><span>${c.title ? `<abbr title="${esc(c.title)}">${esc(c.label)}</abbr>` : esc(c.label)}</span></li>`).join("");
+      return `${line ? `<p class="season-line">${esc(line)}</p>` : ""}<ul class="fresh-nums">${tiles}</ul>`;
+    }).join("");
+    const note = table.example ? `<p class="note"><span class="badge">EXAMPLE</span>${esc(table.note || "Example rows only.")}</p>` : "";
+    return `<div class="fresh"><h3>${esc(table.title)}</h3>${note}${blocks || "<p>Coming soon.</p>"}</div>`;
   }
 
   get("data/stats.json").then(s => {
     const tables = s.tables || [];
-    $("#stats-tables").innerHTML = tables.map(t => {
-      const cols = t.columns || [];
-      const cls = c => c.key === "team" ? ' class="col-team"' : "";
-      const teams = [...new Set((t.rows || []).map(r => r.team).filter(Boolean))].join(", ");
-      const head = cols.map(c => `<th scope="col"${cls(c)}${c.title ? ` title="${esc(c.title)}"` : ""}>${c.title ? `<abbr title="${esc(c.title)}">${esc(c.label)}</abbr>` : esc(c.label)}</th>`).join("");
-      const cell = (c, i, value) => {
-        const label = ` data-label="${esc(c.label)}"`;
-        return i
-          ? `<td${cls(c)}${label}>${esc(value)}</td>`
-          : `<th scope="row"${label}>${esc(value)}</th>`;
-      };
-      const body = (t.rows || []).map(r => `<tr class="${(r.example ?? t.example) ? "example" : ""}">${cols.map((c, i) => cell(c, i, r[c.key] ?? (i ? "—" : ""))).join("")}</tr>`).join("") || `<tr><td colspan="${cols.length}">Coming soon.</td></tr>`;
-      return `<h3>${esc(t.title)}${teams ? ` <span class="team-sub">· ${esc(teams)}</span>` : ""}</h3>${t.example ? `<p class="note"><span class="badge">EXAMPLE</span>${esc(t.note || "Example rows only.")}</p>` : ""}<div class="table-wrap"><table><caption class="sr">${esc(t.title)} stats by season</caption><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
-    }).join("") || "<p>Stats coming soon.</p>";
-    const honors = $("#honors-stats");
-    if (honors) honors.innerHTML = '<p class="fresh-kicker">2026 freshman season · San Marin HS</p>' + tables.map(freshmanBlock).join("");
+    $("#stats-tables").innerHTML = tables.map(statGroup).join("") || "<p>Stats coming soon.</p>";
   }).catch(() => {});
 
   get("data/pitches.json").then(data => {
@@ -122,7 +117,7 @@
       const latest = hist[0];
       const summary = latest ? latest.mph + " mph · " + L.monthLabel(latest.date) : "No reading yet";
       const rows = hist.map(item => `<li><span>${esc(item.mph)} mph</span><span>${esc(L.monthLabel(item.date))}</span></li>`).join("");
-      return `<li class="pitch"><button type="button" class="pitch-btn" aria-expanded="false" aria-controls="pitch-panel-${i}"><span class="pitch-name">${esc(pitch.name)}</span><span class="pitch-now">${esc(summary)}</span></button><div class="pitch-panel" id="pitch-panel-${i}" hidden><ul class="pitch-log">${rows}</ul>${L.trendSvg(hist)}</div></li>`;
+      return `<li class="pitch"><button type="button" class="pitch-btn" aria-expanded="false" aria-controls="pitch-panel-${i}"><span class="pitch-chevron" aria-hidden="true">▸</span><span class="pitch-main"><span class="pitch-name">${esc(pitch.name)}</span><span class="pitch-now">${esc(summary)}</span></span><span class="pitch-action">View history</span></button><div class="pitch-panel" id="pitch-panel-${i}" hidden><ul class="pitch-log">${rows}</ul>${L.trendSvg(hist)}</div></li>`;
     }).join("");
     root.addEventListener("click", event => {
       const btn = event.target.closest(".pitch-btn");
