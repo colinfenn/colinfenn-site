@@ -1,11 +1,11 @@
 {
   "name": "Colin Fenn",
   "gradYear": 2029,
-  "position": "LHP / OF",
+  "position": "LHP/OF",
   "throws": "L",
-  "bats": "Placeholder",
+  "bats": "L",
   "height": "5'7\"",
-  "weight": "140 lbs",
+  "weight": "140",
   "school": "San Marin High School",
   "schoolLocation": "Novato, CA",
   "travelTeam": "NorCal Black 2029",
@@ -21,116 +21,22 @@
     }
   ],
   "academics": {
-    "gpa": "3.6",
-    "gpaScale": "4.0 unweighted",
-    "testScores": "Placeholder",
-    "intendedMajor": "Placeholder",
-    "updated": "Placeholder"
+    "gpa": "3.6"
   },
-  "metrics": [
-    {
-      "label": "Fastball Velo",
-      "value": "75",
-      "unit": "mph",
-      "note": "Approximate"
-    },
-    {
-      "label": "Pitches",
-      "value": "5",
-      "unit": "",
-      "note": "Full mix"
-    },
-    {
-      "label": "Spin Rate",
-      "value": "—",
-      "unit": "rpm",
-      "note": "Placeholder",
-      "placeholder": true
-    },
-    {
-      "label": "Verified Event",
-      "value": "—",
-      "unit": "",
-      "note": "Placeholder (PG / PBR)",
-      "placeholder": true
-    }
-  ],
-  "arsenal": [
-    {
-      "pitch": "Sinker",
-      "velo": "Placeholder",
-      "note": ""
-    },
-    {
-      "pitch": "Slider",
-      "velo": "Placeholder",
-      "note": ""
-    },
-    {
-      "pitch": "Curveball",
-      "velo": "Placeholder",
-      "note": ""
-    },
-    {
-      "pitch": "Changeup",
-      "velo": "Placeholder",
-      "note": ""
-    },
-    {
-      "pitch": "Cutter",
-      "velo": "Placeholder",
-      "note": ""
-    }
-  ],
   "coaches": [
     {
       "role": "High School Coach",
       "name": "Placeholder",
       "team": "San Marin High School",
       "email": "",
-      "phone": "",
-      "quote": "Short quote from coach about Colin's work ethic, competitiveness, and coachability.",
-      "placeholder": true
+      "phone": ""
     },
     {
       "role": "Travel Coach",
       "name": "Placeholder",
       "team": "NorCal Black 2029",
       "email": "",
-      "phone": "",
-      "quote": "Short quote from coach about Colin's work ethic, competitiveness, and coachability.",
-      "placeholder": true
-    }
-  ],
-  "glance": [
-    {
-      "value": "🏆 MVP",
-      "label": "Freshman Team, San Marin HS 2026",
-      "highlight": true
-    },
-    {
-      "value": ".408",
-      "label": "AVG"
-    },
-    {
-      "value": "1.042",
-      "label": "OPS"
-    },
-    {
-      "value": "42 K",
-      "label": "in 41.0 IP"
-    },
-    {
-      "value": "75",
-      "label": "mph LHP"
-    },
-    {
-      "value": "5",
-      "label": "pitches"
-    },
-    {
-      "value": "2029",
-      "label": "Class"
+      "phone": ""
     }
   ],
   "highlightReel": {
@@ -138,8 +44,7 @@
     "title": "60-Second Highlight Reel",
     "caption": ""
   },
-  "note": {
-    "placeholder": true,
-    "text": "A 2–3 sentence note from Colin about who he is as a player, what he's working on, and what he's looking for in a college program."
+  "about": {
+    "url": ""
   }
 }

@@ -5,13 +5,17 @@ h1,h2,h3,.brand,.eyebrow,.btn,.glance-list b,.metric .v,.cards dd,.email,.tabs b
 .nav{background:rgba(6,12,24,.88);border-bottom:1px solid rgba(255,255,255,.06)}
 .brand{font-size:1.35rem;letter-spacing:.06em}.nav nav a{font-weight:600;transition:color .2s}.nav nav a:hover{color:#fff}
 /* Hero */
-.hero{background:radial-gradient(120% 90% at 85% 0%,#1b3566 0%,transparent 55%),linear-gradient(160deg,#050b16 0%,#0a1628 55%,#0f2140 100%);padding:48px 0 96px;clip-path:polygon(0 0,100% 0,100% calc(100% - 56px),0 100%);position:relative;overflow:hidden}
+.hero{background:radial-gradient(120% 90% at 85% 0%,#1b3566 0%,transparent 55%),linear-gradient(160deg,#050b16 0%,#0a1628 55%,#0f2140 100%);padding:36px 0 48px;position:relative;overflow:hidden}
 .hero::before{content:"29";position:absolute;right:-2vw;bottom:-6vw;font:800 clamp(14rem,38vw,30rem)/.8 var(--disp);color:rgba(255,255,255,.035);pointer-events:none}
 .hero::after{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,var(--accent),var(--gold))}
 .hero-in{position:relative;z-index:1}
 .photo{border:0;border-radius:20px;background:linear-gradient(160deg,#16294a,#0c1a33);box-shadow:0 30px 60px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.06)}
 .photo span{background:rgba(255,255,255,.06);font-size:.8rem;letter-spacing:.08em;text-transform:uppercase}
 h1{font-size:clamp(3.6rem,13vw,7rem);font-weight:800;letter-spacing:.01em;line-height:.88}
+h1.id-line{font-family:var(--disp);font-size:clamp(1.7rem,5vw,2.8rem);line-height:1.15;text-transform:none;letter-spacing:.01em;font-weight:800;margin:0}
+.keynums b{font-family:var(--disp);font-size:clamp(1.8rem,6vw,2.6rem);font-weight:800}
+.pitch-name,.fresh-nums b{font-family:var(--disp)}
+.filters button[aria-pressed=true]{background:var(--navy);color:#fff;box-shadow:none;border-radius:999px;padding:6px 12px}
 .eyebrow{font-size:1.15rem;letter-spacing:.22em;color:var(--gold)}
 .lead{color:#aeb9cc}
 .award{font-family:var(--disp);font-size:1.05rem;letter-spacing:.06em;text-transform:uppercase;background:linear-gradient(90deg,var(--gold),#ffd25e);box-shadow:0 6px 20px rgba(255,184,28,.28)}
@@ -61,8 +65,8 @@ td.col-team{font-family:Inter,sans-serif;font-size:.95rem;font-weight:500;color:
 .tabs button{border:0;background:#e3e7ee;color:var(--navy);font-size:1.15rem;letter-spacing:.06em;text-transform:uppercase;transition:background .2s,color .2s,transform .2s var(--ease)}
 .tabs button:hover{transform:translateY(-1px)}
 .tabs button[aria-selected=true]{background:linear-gradient(90deg,var(--accent),#ff7a3d);color:#fff;box-shadow:0 6px 16px rgba(255,90,31,.3)}
-.filters button{border:0;background:transparent;color:var(--muted);font-weight:600;padding:6px 10px}
-.filters button[aria-pressed=true]{background:none;color:var(--navy);box-shadow:inset 0 -2px 0 var(--accent);border-radius:0}
+.filters button{border:0;background:#e3e7ee;color:var(--navy);font-weight:700;padding:8px 12px;border-radius:999px}
+.filters button[aria-pressed=true]{background:var(--navy);color:#fff;box-shadow:none;border-radius:999px}
 /* Video */
 .vcard{background:none;overflow:visible;transition:transform .3s var(--ease)}
 .vcard:hover{transform:translateY(-4px)}
@@ -71,8 +75,8 @@ td.col-team{font-family:Inter,sans-serif;font-size:.95rem;font-weight:500;color:
 .vmedia>span::before{content:"";border-left:18px solid #fff;border-top:11px solid transparent;border-bottom:11px solid transparent;margin-left:5px}
 .vcard:hover .vmedia>span{transform:scale(1.1);background:var(--accent)}
 .vbody{padding:12px 2px}.vbody h4{font-family:var(--disp);font-size:1.3rem;letter-spacing:.03em;margin:0 0 6px}
-.tag{background:none;padding:0 8px 0 0;color:var(--muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase;font-size:.68rem}
-.tag+.tag::before{content:"· ";color:var(--accent)}
+.tag{background:#e8edf4;color:var(--navy);padding:4px 10px;border-radius:999px;font-weight:700;letter-spacing:.02em;text-transform:none;font-size:.75rem}
+.tag+.tag::before{content:none}
 .reel{border-radius:20px;background:radial-gradient(80% 80% at 70% 30%,#1d3a6b,#0a1628);box-shadow:0 30px 60px rgba(10,22,40,.25);font-family:var(--disp);font-size:1.5rem;letter-spacing:.08em;text-transform:uppercase}
 /* Contact */
 .email{font-size:clamp(1.8rem,7vw,3rem);color:#fff;background:linear-gradient(90deg,var(--gold),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}

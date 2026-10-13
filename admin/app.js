@@ -100,18 +100,13 @@
       fileUrl: "",
       youtube: "",
       category: "",
-      pitch: "",
-      result: "",
-      pitchFaced: "",
-      battedBall: "",
-      play: "",
-      position: "",
-      workout: "",
       tags: [],
       tagText: "",
-      setting: "",
       velo: "",
-      opponent: "",
+      thumbnail: "",
+      posterBlob: null,
+      posterUrl: "",
+      posterPromise: null,
       featured: false,
       caption: "",
       dateISO: L.todayISO(new Date()),
@@ -125,7 +120,50 @@
 
   function clearDraft(keepUrl) {
     if (state.draft && state.draft.fileUrl && !keepUrl) URL.revokeObjectURL(state.draft.fileUrl);
+    if (state.draft && state.draft.posterUrl && !keepUrl) URL.revokeObjectURL(state.draft.posterUrl);
     state.draft = null;
+  }
+
+  function captureFrame(file) {
+    return new Promise(resolve => {
+      const url = URL.createObjectURL(file);
+      const video = document.createElement("video");
+      video.muted = true;
+      video.playsInline = true;
+      video.preload = "auto";
+      let settled = false;
+      const done = blob => {
+        if (settled) return;
+        settled = true;
+        URL.revokeObjectURL(url);
+        video.removeAttribute("src");
+        video.load();
+        resolve(blob || null);
+      };
+      const timer = setTimeout(() => done(null), 8000);
+      video.addEventListener("error", () => { clearTimeout(timer); done(null); });
+      video.addEventListener("loadedmetadata", () => {
+        const dur = video.duration;
+        const t = Number.isFinite(dur) && dur > 0 ? Math.min(1, dur > 1.2 ? 1 : dur / 2) : 0;
+        try { video.currentTime = t; } catch (err) { clearTimeout(timer); done(null); }
+      });
+      video.addEventListener("seeked", () => {
+        try {
+          const w = video.videoWidth || 0;
+          const h = video.videoHeight || 0;
+          if (!w || !h) { clearTimeout(timer); done(null); return; }
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext("2d").drawImage(video, 0, 0, w, h);
+          canvas.toBlob(blob => { clearTimeout(timer); done(blob); }, "image/jpeg", 0.82);
+        } catch (err) {
+          clearTimeout(timer);
+          done(null);
+        }
+      });
+      video.src = url;
+    });
   }
 
   function syncTitle() {
@@ -358,9 +396,19 @@
       if (box) box.focus();
       return;
     }
+    if (state.draft.posterUrl) URL.revokeObjectURL(state.draft.posterUrl);
+    state.draft.posterBlob = null;
+    state.draft.posterUrl = "";
     state.draft.file = file;
     state.draft.fileUrl = URL.createObjectURL(file);
     state.error = "";
+    const token = state.draft.fileUrl;
+    state.draft.posterPromise = captureFrame(file).then(blob => {
+      if (!state.draft || state.draft.fileUrl !== token || !blob) return;
+      state.draft.posterBlob = blob;
+      state.draft.posterUrl = URL.createObjectURL(blob);
+      render();
+    }).catch(() => {});
     render();
   }
 
@@ -372,17 +420,9 @@
         type: draft.type,
         url: draft.url,
         category: draft.category,
-        pitch: draft.pitch,
-        result: draft.result,
-        pitchFaced: draft.pitchFaced,
-        battedBall: draft.battedBall,
-        play: draft.play,
-        position: draft.position,
-        workout: draft.workout,
         tags: draft.tags,
-        setting: draft.setting,
         velo: draft.velo,
-        opponent: draft.opponent,
+        thumbnail: draft.thumbnail,
         featured: draft.featured,
         date: draft.dateLabel,
         caption: draft.caption
@@ -394,17 +434,9 @@
       type: useFile ? "mp4" : "youtube",
       url: useFile ? draft.url : draft.youtube.trim(),
       category: draft.category,
-      pitch: draft.pitch,
-      result: draft.result,
-      pitchFaced: draft.pitchFaced,
-      battedBall: draft.battedBall,
-      play: draft.play,
-      position: draft.position,
-      workout: draft.workout,
       tags: draft.tags,
-      setting: draft.setting,
       velo: draft.velo,
-      opponent: draft.opponent,
+      thumbnail: draft.thumbnail,
       featured: draft.featured,
       date: L.formatISODate(draft.dateISO),
       caption: draft.caption
@@ -421,15 +453,25 @@
     render();
     let mediaPath = "";
     let mediaBase64 = "";
+    let thumbPath = "";
+    let thumbBase64 = "";
     let keepUrl = false;
     try {
+      if (file && state.draft && state.draft.posterPromise) {
+        try { await state.draft.posterPromise; } catch (err) { /* poster is optional */ }
+      }
       if (file) {
         mediaPath = L.mediaRepoPath(action.entry.title, file.name, file.type, new Date());
         action.entry.url = L.publicUrl(mediaPath);
+        if (state.draft && state.draft.posterBlob) {
+          thumbPath = L.thumbnailRepoPath(mediaPath);
+          action.entry.thumbnail = L.publicUrl(thumbPath);
+        }
         const problem = L.validateEntry(action.entry);
         if (problem) throw Object.assign(new Error(problem), { friendly: problem });
         if (practice) {
           state.localMedia.set(action.entry.url, state.draft.fileUrl);
+          if (thumbPath && state.draft.posterUrl) state.localMedia.set(action.entry.thumbnail, state.draft.posterUrl);
           keepUrl = true;
           state.progress = 100;
           renderProgress();
@@ -439,6 +481,7 @@
             state.progressLabel = "Getting your video ready…";
             renderProgress();
           });
+          if (state.draft && state.draft.posterBlob) thumbBase64 = await fileToBase64(state.draft.posterBlob);
         }
       }
       if (state.cancelRequested) throw Object.assign(new Error("aborted"), { message: "aborted" });
@@ -456,6 +499,8 @@
           await L.commitChanges(request, plan, {
             mediaPath: mediaPath,
             mediaBase64: mediaBase64,
+            thumbnailPath: thumbPath,
+            thumbnailBase64: thumbBase64,
             onProgress: portion => {
               state.progress = 35 + Math.round(portion * 60);
               renderProgress();
@@ -549,18 +594,13 @@
       fileUrl: "",
       youtube: "",
       category: video.category || "",
-      pitch: video.pitch || "",
-      result: video.result || "",
-      pitchFaced: video.pitchFaced || "",
-      battedBall: video.battedBall || "",
-      play: video.play || "",
-      position: video.position || "",
-      workout: video.workout || "",
-      tags: L.normalizeTags(video.tags),
+      tags: L.orderedTags(video.category, video.tags),
       tagText: "",
-      setting: video.setting || "",
-      velo: video.velo || "",
-      opponent: video.opponent || "",
+      velo: video.category === "Pitching" ? (video.velo || "") : "",
+      thumbnail: video.thumbnail || "",
+      posterBlob: null,
+      posterUrl: "",
+      posterPromise: null,
       featured: !!video.featured,
       caption: video.caption || "",
       dateISO: "",
@@ -593,17 +633,23 @@
   }
 
   function chips(group, label, options, selected) {
+    const many = Array.isArray(selected);
     const buttons = options.map(value => {
-      const on = value === selected;
+      const on = many ? selected.some(tag => tag.toLowerCase() === value.toLowerCase()) : value === selected;
       return '<button type="button" class="chip" data-action="pick" data-group="' + group + '" data-value="' + L.esc(value) + '" aria-pressed="' + (on ? "true" : "false") + '">' + L.esc(value) + "</button>";
     }).join("");
     const wide = group === "category" ? " chips-wide" : "";
     return '<fieldset><legend>' + label + '</legend><div class="chips' + wide + '">' + buttons + "</div></fieldset>";
   }
 
+  function customOnly(tags) {
+    const preset = new Set(L.tagsFor(state.draft.category).map(tag => tag.toLowerCase()));
+    return (tags || []).filter(tag => !preset.has(String(tag).toLowerCase()));
+  }
+
   function customTagHtml() {
-    const tags = state.draft.tags || [];
-    const chosen = tags.map((tag, i) => '<button type="button" class="chip chip-custom" data-action="remove-tag" data-index="' + i + '" aria-pressed="true" aria-label="Remove tag ' + L.esc(tag) + '">' + L.esc(tag) + ' <span aria-hidden="true">×</span></button>').join("");
+    const tags = customOnly(state.draft.tags);
+    const chosen = tags.map(tag => '<button type="button" class="chip chip-custom" data-action="remove-tag" data-value="' + L.esc(tag) + '" aria-pressed="true" aria-label="Remove tag ' + L.esc(tag) + '">' + L.esc(tag) + ' <span aria-hidden="true">×</span></button>').join("");
     return '<fieldset class="custom-tags"><legend>Add your own tag <span class="optional">optional</span></legend>' +
       (chosen ? '<div class="chips">' + chosen + "</div>" : "") +
       '<div class="tag-add"><input id="tag-text" type="text" maxlength="' + L.MAX_CUSTOM_TAG + '" autocomplete="off" enterkeyhint="done" placeholder="Walk-off, vs. lefty, 1st inning…" aria-label="Your own tag" value="' + L.esc(state.draft.tagText || "") + '"><button type="button" class="btn btn-secondary btn-small" data-action="add-tag">Add</button></div>' +
@@ -622,16 +668,16 @@
 
   function tagFields() {
     const tags = L.tagsFor(state.draft.category);
-    return Object.keys(tags).map(key => chips(key, L.TAG_LABELS[key] || key, tags[key], state.draft[key])).join("");
+    if (!tags.length) return "";
+    return chips("tags", "Tags", tags, state.draft.tags || []);
   }
 
   function extraFields() {
     const draft = state.draft;
-    const opponent = L.showOpponent(draft)
-      ? '<label class="field" for="opponent">Opponent <span class="optional">optional</span><input id="opponent" type="text" maxlength="80" autocomplete="off" placeholder="Marin Catholic" value="' + L.esc(draft.opponent) + '"></label>'
+    const velo = draft.category === "Pitching"
+      ? '<label class="field" for="velo">Speed <span class="optional">optional</span><input id="velo" type="text" maxlength="40" autocomplete="off" placeholder="75 mph" value="' + L.esc(draft.velo) + '"></label>'
       : "";
-    return '<label class="field" for="velo">Speed <span class="optional">optional</span><input id="velo" type="text" maxlength="40" autocomplete="off" placeholder="75 mph" value="' + L.esc(draft.velo) + '"></label>' +
-      opponent +
+    return velo +
       '<label class="toggle" for="featured"><input id="featured" type="checkbox"' + (draft.featured ? " checked" : "") + '><span>Feature this</span></label>' +
       '<p class="fine">Puts this clip at the top of your site. Only one clip can be the highlight reel.</p>';
   }
@@ -681,7 +727,7 @@
       '<button type="button" class="btn btn-light" data-action="login"' + (state.busy ? " disabled" : "") + ">Log in with GitHub</button>" +
       '<p class="fine light">A window will open so GitHub can confirm it\'s you. If nothing opens, allow pop-ups for this site.</p>' +
       '<p class="fine light">To keep this on your phone, add this page to your home screen.</p>' +
-      '<p class="fine light"><a href="/admin/advanced/">Edit stats, GPA, or the schedule</a></p>' +
+      '<p class="fine light"><a href="/admin/advanced/">Edit stats, GPA, or pitch velo</a></p>' +
       "</div></section>";
   }
 
@@ -690,14 +736,14 @@
     const parts = splitVideos();
     const rows = parts.real.map(rowHtml).join("");
     const blanks = parts.blanks.length ? '<details class="blanks"><summary>Blank cards still on the site (' + parts.blanks.length + ')</summary><p class="fine">These say “Video coming soon.” Delete one after you replace it.</p>' + parts.blanks.map(blankHtml).join("") + "</details>" : "";
-    const list = rows || '<div class="empty"><p>No videos yet.</p><p class="fine">Tap Add Video. Pick a clip, tap a few buttons, and post it.</p></div>';
+    const list = rows || '<div class="empty"><p>Videos coming soon.</p><p class="fine">Nothing is posted yet. Tap Add Video, pick a clip, tap a few tags, and post it.</p></div>';
     const notice = state.notice ? '<p class="notice" role="status">' + L.esc(state.notice) + "</p>" : "";
     return '<section class="screen" id="main">' + practiceHtml() +
       '<header class="bar"><div><p class="eyebrow">Colin Fenn</p><h1 tabindex="-1">My videos</h1></div><button type="button" class="text-btn light" data-action="logout">Log out</button></header>' +
       '<div class="content">' + alertHtml() + notice +
       '<p class="hello">Hi, ' + L.esc(state.login || "there") + ". Post a clip and it shows up on your recruiting site.</p>" +
       list + blanks +
-      '<p class="fine install">To keep this on your phone, add this page to your home screen. <a href="/admin/advanced/">Stats and GPA</a> are in the full editor.</p>' +
+      '<p class="fine install">To keep this on your phone, add this page to your home screen. <a href="/admin/advanced/">Stats, GPA, and pitch velo</a> are in the full editor.</p>' +
       "</div>" +
       '<div class="dock"><button type="button" class="btn btn-primary" data-action="add">Add Video</button></div></section>';
   }
@@ -714,10 +760,14 @@
   }
 
   function thumbHtml(video) {
+    if (video.thumbnail) {
+      const poster = state.localMedia.get(video.thumbnail) || video.thumbnail;
+      return '<img alt="" src="' + L.esc(poster) + '">';
+    }
     const id = L.youtubeId(video.url);
     if (id && video.type !== "mp4") return '<img alt="" src="https://i.ytimg.com/vi/' + L.esc(id) + '/hqdefault.jpg">';
     const src = state.localMedia.get(video.url) || video.url;
-    if (src) return '<video muted playsinline preload="metadata" src="' + L.esc(src) + '#t=0.1"></video>';
+    if (src) return '<video muted playsinline preload="metadata" src="' + L.esc(src) + '#t=0.5"></video>';
     return '<span class="film" aria-hidden="true"></span>';
   }
 
@@ -746,11 +796,12 @@
   }
 
   function tagsStep() {
-    const fields = tagFields();
-    const lead = fields
-      ? '<p class="lead">Tap any that fit. You can skip some.</p>' + fields
-      : '<p class="lead">No set tags for a highlight. Add your own below if you want. Speed and an opponent are on the next screen.</p>';
-    return shell("Tag it", clipHtml() + lead + customTagHtml(), dock("Next", "next"));
+    return shell("Tag it",
+      clipHtml() +
+      '<p class="lead">Tap any that fit. You can pick more than one.</p>' +
+      tagFields() +
+      customTagHtml(),
+      dock("Next", "next"));
   }
 
   function detailsStep() {
@@ -781,7 +832,7 @@
       '<label class="field" for="title">Title<input id="title" type="text" maxlength="120" autocomplete="off" value="' + L.esc(state.draft.title) + '"></label>' +
       '<button type="button" class="text-btn" data-action="suggest">Fill in a title from my picks</button>' +
       chips("category", "Category", L.CATEGORIES, state.draft.category) +
-      (tags || '<p class="fine">No set tags for a highlight.</p>') + customTagHtml() +
+      (tags || "") + customTagHtml() +
       '<label class="field" for="caption">Caption<textarea id="caption" rows="3" placeholder="' + L.esc(hint) + '">' + L.esc(state.draft.caption) + "</textarea></label>" +
       '<p class="fine">Example: ' + L.esc(hint) + "</p>" +
       (state.draft.dateLabel ? '<p class="fine">Date: ' + L.esc(state.draft.dateLabel) + "</p>" : "") +
@@ -824,17 +875,9 @@
       type: useFile ? "mp4" : "youtube",
       url: useFile ? draft.fileUrl : draft.youtube.trim(),
       category: draft.category,
-      pitch: draft.pitch,
-      result: draft.result,
-      pitchFaced: draft.pitchFaced,
-      battedBall: draft.battedBall,
-      play: draft.play,
-      position: draft.position,
-      workout: draft.workout,
       tags: draft.tags,
-      setting: draft.setting,
       velo: draft.velo,
-      opponent: draft.opponent,
+      thumbnail: draft.posterUrl || draft.thumbnail,
       featured: draft.featured,
       date: L.formatISODate(draft.dateISO),
       caption: draft.caption
@@ -872,8 +915,6 @@
     });
     const velo = $("#velo");
     if (velo) velo.addEventListener("input", () => { state.draft.velo = velo.value; });
-    const opponent = $("#opponent");
-    if (opponent) opponent.addEventListener("input", () => { state.draft.opponent = opponent.value; });
     const featured = $("#featured");
     if (featured) featured.addEventListener("change", () => { state.draft.featured = featured.checked; });
     const tagText = $("#tag-text");
@@ -952,14 +993,19 @@
       const value = control.dataset.value;
       if (group === "category") {
         state.draft.category = value;
-        const allowed = L.tagsFor(value);
-        Object.keys(L.TAG_LABELS).forEach(key => {
-          if (!allowed[key]) state.draft[key] = "";
-        });
+        const allowed = new Set(L.tagsFor(value).map(tag => tag.toLowerCase()));
+        const anyPreset = new Set(L.CATEGORIES.flatMap(category => L.tagsFor(category)).map(tag => tag.toLowerCase()));
+        state.draft.tags = (state.draft.tags || []).filter(tag => allowed.has(tag.toLowerCase()) || !anyPreset.has(tag.toLowerCase()));
+        if (value !== "Pitching") state.draft.velo = "";
+      } else if (group === "tags") {
+        const tags = (state.draft.tags || []).slice();
+        const index = tags.findIndex(tag => tag.toLowerCase() === value.toLowerCase());
+        if (index >= 0) tags.splice(index, 1);
+        else tags.push(value);
+        state.draft.tags = L.normalizeTags(tags);
       } else {
         state.draft[group] = state.draft[group] === value ? "" : value;
       }
-      if (!L.showOpponent(state.draft)) state.draft.opponent = "";
       syncTitle();
       state.error = "";
       render();
@@ -967,8 +1013,8 @@
       if (again) again.focus();
     } else if (action === "add-tag") addTagFromInput();
     else if (action === "remove-tag") {
-      const index = Number(control.dataset.index);
-      state.draft.tags = (state.draft.tags || []).filter((_, i) => i !== index);
+      const value = control.dataset.value || "";
+      state.draft.tags = (state.draft.tags || []).filter(tag => tag.toLowerCase() !== value.toLowerCase());
       render();
       const input = $("#tag-text");
       if (input) input.focus();
@@ -980,8 +1026,12 @@
       if (title) title.focus();
     } else if (action === "clear-file") {
       if (state.draft.fileUrl) URL.revokeObjectURL(state.draft.fileUrl);
+      if (state.draft.posterUrl) URL.revokeObjectURL(state.draft.posterUrl);
       state.draft.file = null;
       state.draft.fileUrl = "";
+      state.draft.posterBlob = null;
+      state.draft.posterUrl = "";
+      state.draft.posterPromise = null;
       render();
     } else if (action === "post") post();
     else if (action === "save") saveEdit();

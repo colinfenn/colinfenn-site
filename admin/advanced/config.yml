@@ -58,8 +58,7 @@ collections:
                   - Pitching
                   - Hitting
                   - Fielding
-                  - "Workouts/Training"
-                  - "Game Highlights"
+                  - "Training/Workouts"
                 hint: This picks the tab on the site. Don't invent a new one.
               - label: YouTube link
                 name: youtube
@@ -77,122 +76,28 @@ collections:
                 media_library:
                   config:
                     max_file_size: 50000000
-              - label: Pitch
-                name: pitch
-                widget: select
+              - label: Thumbnail
+                name: thumbnail
+                widget: image
                 required: false
-                default: ""
-                options:
-                  - { label: "Not tagged", value: "" }
-                  - Sinker
-                  - Slider
-                  - Curveball
-                  - Changeup
-                  - Cutter
-                  - Fastball
-                hint: Shows as a filter button. Leave as Not tagged for hitting, fielding, workouts, and highlights.
-              - label: Camera angle
-                name: angle
-                widget: select
+                choose_url: true
+                media_folder: /media/videos
+                public_folder: /media/videos
+                hint: "Poster image for an uploaded video. The phone uploader fills this in from a frame at about 1 second."
+              - label: Tags
+                name: tags
+                widget: list
                 required: false
-                default: ""
-                options:
-                  - { label: "Not tagged", value: "" }
-                  - "Open side"
-                  - "Behind mound"
-                  - Front
-                  - Side
-              - label: Game, bullpen, or practice
-                name: setting
-                widget: select
-                required: false
-                default: ""
-                options:
-                  - { label: "Not tagged", value: "" }
-                  - Game
-                  - Bullpen
-                  - Practice
-                  - "Batting practice"
-                hint: Pitching uses Game or Bullpen. Hitting uses Game or Batting practice. Fielding uses Game or Practice.
-              - label: Hitting result
-                name: result
-                widget: select
-                required: false
-                default: ""
-                options:
-                  - { label: "Not tagged", value: "" }
-                  - Single
-                  - Double
-                  - Triple
-                  - "Home run"
-                  - Walk
-                  - "Line drive out"
-              - label: Pitch faced
-                name: pitchFaced
-                widget: select
-                required: false
-                default: ""
-                options:
-                  - { label: "Not tagged", value: "" }
-                  - Fastball
-                  - "Breaking ball"
-                  - Off-speed
-              - label: Batted ball
-                name: battedBall
-                widget: select
-                required: false
-                default: ""
-                options:
-                  - { label: "Not tagged", value: "" }
-                  - "Line drive"
-                  - "Ground ball"
-                  - "Fly ball"
-              - label: Fielding play
-                name: play
-                widget: select
-                required: false
-                default: ""
-                options:
-                  - { label: "Not tagged", value: "" }
-                  - Catch
-                  - "Diving catch"
-                  - Throw/assist
-                  - "Ground ball"
-                  - "Fly ball"
-                  - Relay
-              - label: Position
-                name: position
-                widget: select
-                required: false
-                default: ""
-                options:
-                  - { label: "Not tagged", value: "" }
-                  - LF
-                  - CF
-                  - RF
-                  - P
-              - label: Workout
-                name: workout
-                widget: select
-                required: false
-                default: ""
-                options:
-                  - { label: "Not tagged", value: "" }
-                  - Velo
-                  - "Long toss"
-                  - Weights
-                  - Speed/agility
-                  - Bullpen
+                hint: "One tag per row. You can add more than one. Pitching: Sinker, Curveball, Slider, Cutter, Changeup, K, Pickoff, Game, Bullpen. Hitting: vs. Lefty, vs. Righty, Bunt, Single, Extra-base hit, Game, BP. Fielding: OF, Pitcher, Catch, Throw, Game, Practice. Training/Workouts: Bullpen, Weights, Speed/Agility."
+                field:
+                  label: Tag
+                  name: tag
+                  widget: string
               - label: Speed
                 name: velo
                 widget: string
                 required: false
-                hint: "Optional. Example: 75 mph. Shown on the card."
-              - label: Opponent
-                name: opponent
-                widget: string
-                required: false
-                hint: "Optional, for a game. Example: Marin Catholic."
+                hint: "Optional, and only for a pitching clip. Example: 75 mph. Shown on the card."
               - label: Feature this on the highlight reel
                 name: featured
                 widget: boolean
@@ -243,9 +148,9 @@ collections:
               - { label: Season, name: season, widget: string, hint: "Example: 2026" }
               - { label: Team, name: team, widget: string, hint: "Example: San Marin HS (Freshman)" }
               - { label: AVG, name: avg, widget: string, required: false, hint: "Batting average, example .408" }
-              - { label: SLG, name: slg, widget: string, required: false, hint: "Slugging" }
-              - { label: OPS, name: ops, widget: string, required: false }
-              - { label: "C% (contact)", name: cpct, widget: string, required: false, hint: "Example: 89.80%" }
+              - { label: OBP, name: obp, widget: string, required: false, hint: "On-base percentage, example .491" }
+              - { label: SLG, name: slg, widget: string, required: false, hint: "Slugging, example .551" }
+              - { label: OPS, name: ops, widget: string, required: false, hint: "Example: 1.042" }
           - label: Pitching rows are only an example
             name: pitchingExample
             widget: boolean
@@ -266,70 +171,46 @@ collections:
               - { label: Season, name: season, widget: string, hint: "Example: 2026" }
               - { label: Team, name: team, widget: string }
               - { label: IP, name: ip, widget: string, required: false, hint: "Innings pitched, example 41.0" }
-              - { label: SO, name: so, widget: string, required: false, hint: "Strikeouts" }
-              - { label: "S% (strikes)", name: spct, widget: string, required: false, hint: "Example: 51.96%" }
+              - { label: ERA, name: era, widget: string, required: false, hint: "Earned run average, example 5.29" }
+              - { label: SO, name: so, widget: string, required: false, hint: "Strikeouts, example 42" }
               - { label: BB/IP, name: bbIp, widget: string, required: false, hint: "Walks per inning, example .585" }
+              - { label: "Strike%", name: spct, widget: string, required: false, hint: "Strike percentage, example 55.64%" }
+              - { label: "C%", name: cpct, widget: string, required: false, hint: "Contact percentage, example 89.80%" }
 
-  - name: schedule
-    label: Schedule and showcases
-    description: Games, showcases, and camps.
+  - name: pitches
+    label: Pitch velo
+    description: Latest speed for each pitch, plus older readings.
     extension: json
     editor:
       preview: false
     files:
-      - name: schedule
-        label: Schedule and showcases
-        file: data/schedule.json
-        description: Turn off "Schedule not announced yet" once the games are real.
+      - name: pitches
+        label: Pitches
+        file: data/pitches.json
+        description: Each pitch keeps a history of readings. Add a new row when you measure again.
         fields:
-          - label: Schedule not announced yet
-            name: example
-            widget: boolean
-            default: true
-            hint: Leave this on until the games below are real. While it is on, the site says the schedule is still to be announced.
-          - label: Games
-            name: events
+          - label: Pitches
+            name: pitches
             widget: list
-            label_singular: Game
-            summary: "{{date}} · {{event}}"
+            summary: "{{name}}"
             collapsed: true
             fields:
-              - { label: Date, name: date, widget: string, hint: "Example: April 12, 2026" }
-              - { label: Event, name: event, widget: string, hint: "Who you play, or the name of the game" }
-              - { label: Team, name: team, widget: string, required: false, hint: "Example: San Marin HS or NorCal Black 2029" }
-              - { label: Location, name: location, widget: string, required: false }
-          - label: Showcases and camps
-            name: showcases
-            widget: list
-            label_singular: Showcase
-            summary: "{{status}} · {{event}}"
-            collapsed: true
-            fields:
-              - label: Upcoming or past
-                name: status
-                widget: select
-                default: Upcoming
-                options:
-                  - Upcoming
-                  - Past
-                hint: Upcoming and Past are the two tabs on the site. Use those words exactly.
-              - { label: Date, name: date, widget: string, hint: "Example: June 2026, or TBD" }
-              - { label: Event, name: event, widget: string }
-              - { label: Location, name: location, widget: string, required: false }
-              - label: Results
-                name: results
-                widget: string
-                required: false
-                hint: "For a past event: velo, metrics, or a short note. Leave blank if you don't have results yet."
-              - label: Still a placeholder
-                name: placeholder
-                widget: boolean
-                default: false
-                hint: Turn on only if this event is not real yet. The site shows a Placeholder tag.
+              - { label: Pitch, name: name, widget: string, hint: "Example: Sinker" }
+              - label: Readings
+                name: history
+                widget: list
+                label_singular: Reading
+                summary: "{{mph}} mph · {{date}}"
+                collapsed: true
+                add_to_top: true
+                hint: "Add a new reading to this list. New readings are appended and do not overwrite older ones, so the site can show the full history and a trend."
+                fields:
+                  - { label: MPH, name: mph, widget: number, value_type: int, min: 0, max: 120, step: 1, hint: "Example: 75" }
+                  - { label: Month, name: date, widget: string, hint: "Year and month, like 2026-10." }
 
   - name: profile
     label: Profile and GPA
-    description: Name, GPA, photo, honors, pitches, and coaches.
+    description: Name, GPA, photo, honors, about video, and coaches.
     format: site-profile
     extension: json
     editor:
@@ -338,7 +219,7 @@ collections:
       - name: profile
         label: Profile
         file: data/profile.json
-        description: GPA is in the Academics section. Type Placeholder in a box you don't know yet.
+        description: GPA shows in the key numbers at the top. Type Placeholder in a box you don't know yet.
         fields:
           - { label: Name, name: name, widget: string }
           - label: Class year
@@ -347,19 +228,15 @@ collections:
             hint: "Example: 2029"
             value_type: int
             step: 1
-          - { label: Position, name: position, widget: string, hint: "Example: LHP / OF" }
-          - { label: Throws, name: throws, widget: string, hint: "L or R" }
-          - { label: Bats, name: bats, widget: string, required: false, hint: "L, R, or S. Type Placeholder if you don't know yet." }
+          - { label: Position, name: position, widget: string, hint: "Example: LHP/OF" }
+          - { label: Throws, name: throws, widget: string, hint: "L or R. Shown with bats as B/T." }
+          - { label: Bats, name: bats, widget: string, required: false, hint: "L, R, or S. Shown with throws as B/T." }
           - { label: Height, name: height, widget: string, hint: "Example: 5'7\"" }
-          - { label: Weight, name: weight, widget: string, required: false, hint: "Pounds, or Placeholder." }
+          - { label: Weight, name: weight, widget: string, required: false, hint: "Number only, example 140." }
           - { label: High school, name: school, widget: string }
           - { label: School city, name: schoolLocation, widget: string, hint: "Example: Novato, CA" }
           - { label: Travel team, name: travelTeam, widget: string }
           - { label: Email, name: email, widget: string }
-          - label: Short intro
-            name: tagline
-            widget: text
-            hint: The sentence under your name at the top of the site.
           - label: Photo
             name: photo
             widget: image
@@ -371,32 +248,25 @@ collections:
             media_library:
               config:
                 max_file_size: 5000000
-          - label: Academics
+          - label: GPA
             name: academics
             widget: object
-            hint: GPA on the site comes from here.
+            hint: Shown in the key numbers at the top of the site.
             fields:
               - label: GPA
                 name: gpa
                 widget: string
-                hint: "Example: 3.85. Type Placeholder if you don't have it yet."
-              - { label: GPA scale, name: gpaScale, widget: string, required: false, hint: "Usually 4.0" }
-              - { label: Test scores, name: testScores, widget: string, required: false, hint: "Example: SAT 1200, or Placeholder." }
-              - { label: Intended major, name: intendedMajor, widget: string, required: false }
-              - { label: Last updated, name: updated, widget: string, required: false, hint: "Example: October 2026" }
-          - label: A note from Colin
-            name: note
+                hint: "Example: 3.6. Type Placeholder if you don't have it yet."
+          - label: About Me video
+            name: about
             widget: object
+            hint: Leave the link blank to show "About Me video coming soon."
             fields:
-              - label: This note is still a placeholder
-                name: placeholder
-                widget: boolean
-                default: true
-                hint: Turn this off once the words below are really yours.
-              - label: Note
-                name: text
-                widget: text
-                hint: Two or three sentences about who you are as a player and what you want in a program.
+              - label: Video URL
+                name: url
+                widget: string
+                required: false
+                hint: "YouTube link or a path like /media/videos/about.mp4."
           - label: Highlight reel
             name: highlightReel
             widget: object
@@ -433,45 +303,7 @@ collections:
                 name: featured
                 widget: boolean
                 default: false
-                hint: Turn on for the one honor that should sit under your name.
-          - label: At a glance
-            name: glance
-            widget: list
-            summary: "{{value}} {{label}}"
-            collapsed: true
-            hint: The row of big numbers under the photo.
-            fields:
-              - { label: Big text, name: value, widget: string, hint: "Example: .408 or 42 K" }
-              - { label: Small label, name: label, widget: string, hint: "Example: AVG" }
-              - label: Highlight this one
-                name: highlight
-                widget: boolean
-                required: false
-                default: false
-          - label: Pitching numbers
-            name: metrics
-            widget: list
-            summary: "{{label}}: {{value}}"
-            collapsed: true
-            fields:
-              - { label: Label, name: label, widget: string, hint: "Example: Fastball Velo" }
-              - { label: Value, name: value, widget: string, hint: "Example: 75" }
-              - { label: Unit, name: unit, widget: string, required: false, hint: "Example: mph. Leave blank if there is no unit." }
-              - { label: Note, name: note, widget: string, required: false }
-              - label: This number is a placeholder
-                name: placeholder
-                widget: boolean
-                required: false
-                default: false
-          - label: Pitches
-            name: arsenal
-            widget: list
-            summary: "{{pitch}}"
-            collapsed: true
-            fields:
-              - { label: Pitch, name: pitch, widget: string }
-              - { label: Velo, name: velo, widget: string, required: false, hint: "Example: 68-72, or Placeholder." }
-              - { label: Note, name: note, widget: string, required: false }
+                hint: Turn on for the honor that should show as the gold bar in Honors.
           - label: Coaches
             name: coaches
             widget: list
@@ -483,13 +315,3 @@ collections:
               - { label: Team, name: team, widget: string, required: false }
               - { label: Email, name: email, widget: string, required: false }
               - { label: Phone, name: phone, widget: string, required: false }
-              - label: Quote
-                name: quote
-                widget: text
-                required: false
-                hint: Shows in Coach References when this is filled in.
-              - label: Quote is still a placeholder
-                name: placeholder
-                widget: boolean
-                required: false
-                default: false

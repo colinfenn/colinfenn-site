@@ -7,32 +7,33 @@
     'Pitching',
     'Hitting',
     'Fielding',
-    'Workouts/Training',
-    'Game Highlights'
+    'Training/Workouts'
   ];
 
   var YT = /(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/;
   var VIDEO_EXT = /\.(mp4|webm|mov)(\?|$)/i;
 
-  var HITTING_KEYS = ['season', 'team', 'avg', 'slg', 'ops', 'cpct'];
-  var PITCHING_KEYS = ['season', 'team', 'ip', 'so', 'spct', 'bbIp'];
+  var HITTING_KEYS = ['season', 'team', 'avg', 'obp', 'slg', 'ops'];
+  var PITCHING_KEYS = ['season', 'team', 'ip', 'era', 'so', 'bbIp', 'spct', 'cpct'];
 
   var STAT_COLUMNS = {
     Hitting: [
       { key: 'season', label: 'Season' },
       { key: 'team', label: 'Team' },
       { key: 'avg', label: 'AVG', title: 'Batting average' },
+      { key: 'obp', label: 'OBP', title: 'On-base percentage' },
       { key: 'slg', label: 'SLG', title: 'Slugging percentage' },
-      { key: 'ops', label: 'OPS', title: 'On-base plus slugging' },
-      { key: 'cpct', label: 'C%', title: 'Contact percentage' }
+      { key: 'ops', label: 'OPS', title: 'On-base plus slugging' }
     ],
     Pitching: [
       { key: 'season', label: 'Season' },
       { key: 'team', label: 'Team' },
       { key: 'ip', label: 'IP', title: 'Innings pitched' },
+      { key: 'era', label: 'ERA', title: 'Earned run average' },
       { key: 'so', label: 'SO', title: 'Strikeouts' },
-      { key: 'spct', label: 'S%', title: 'Strike percentage' },
-      { key: 'bbIp', label: 'BB/IP', title: 'Walks per inning' }
+      { key: 'bbIp', label: 'BB/IP', title: 'Walks per inning' },
+      { key: 'spct', label: 'Strike%', title: 'Strike percentage' },
+      { key: 'cpct', label: 'C%', title: 'Contact percentage' }
     ]
   };
 
@@ -59,22 +60,50 @@
     return '';
   }
 
+  function normalizeCategory(category) {
+    var name = text(category);
+    if (name === 'Workouts/Training') return 'Training/Workouts';
+    if (name === 'Game Highlights') return 'Pitching';
+    if (CATEGORIES.indexOf(name) >= 0) return name;
+    return 'Pitching';
+  }
+
+  function tagList(v) {
+    var raw = [];
+    if (Array.isArray(v.tags)) raw = raw.concat(v.tags);
+    ['pitch', 'result', 'pitchFaced', 'battedBall', 'play', 'position', 'workout', 'setting'].forEach(function (key) {
+      if (text(v[key])) raw.push(text(v[key]));
+    });
+    var out = [];
+    var seen = {};
+    raw.forEach(function (item) {
+      var tag = text(item).replace(/\s+/g, ' ');
+      var key = tag.toLowerCase();
+      if (!tag || seen[key]) return;
+      seen[key] = true;
+      out.push(tag);
+    });
+    return out;
+  }
+
   function diskVideo(v) {
     v = v || {};
     var url = pickVideoUrl(v.file, v.youtube);
     if (!url && v.url) url = text(v.url);
+    var category = normalizeCategory(v.category);
     var item = {
       title: v.title || '',
       type: inferType(url),
       url: url
     };
-    ['pitch', 'result', 'pitchFaced', 'battedBall', 'play', 'position', 'workout', 'angle', 'setting', 'velo', 'opponent'].forEach(function (key) {
-      if (text(v[key])) item[key] = text(v[key]);
-    });
+    if (text(v.thumbnail)) item.thumbnail = text(v.thumbnail);
+    var tags = tagList(v);
+    if (tags.length) item.tags = tags;
+    if (category === 'Pitching' && text(v.velo)) item.velo = text(v.velo);
     if (v.featured === true || v.featured === 'true') item.featured = true;
     item.date = v.date || '';
     item.caption = v.caption || '';
-    item.category = v.category || 'Pitching';
+    item.category = category;
     return item;
   }
 
@@ -82,22 +111,15 @@
     v = v || {};
     var url = text(v.url);
     var isFile = VIDEO_EXT.test(url);
+    var category = normalizeCategory(v.category);
     return {
       title: v.title || '',
-      category: v.category || 'Pitching',
+      category: category,
       youtube: isFile ? '' : url,
       file: isFile ? url : '',
-      pitch: v.pitch || '',
-      result: v.result || '',
-      pitchFaced: v.pitchFaced || '',
-      battedBall: v.battedBall || '',
-      play: v.play || '',
-      position: v.position || '',
-      workout: v.workout || '',
-      angle: v.angle || '',
-      setting: v.setting || '',
-      velo: v.velo || '',
-      opponent: v.opponent || '',
+      thumbnail: v.thumbnail || '',
+      tags: tagList(v),
+      velo: category === 'Pitching' ? (v.velo || '') : '',
       featured: !!v.featured,
       date: v.date || '',
       caption: v.caption || ''
@@ -112,9 +134,12 @@
   }
 
   function videosToFile(data) {
+    var videos = ((data && data.videos) || []).filter(function (v) {
+      return text(v && v.category) !== 'Game Highlights' || text(v && v.url);
+    }).map(diskVideo);
     var out = {
       categories: CATEGORIES.slice(),
-      videos: ((data && data.videos) || []).map(diskVideo)
+      videos: videos
     };
     return JSON.stringify(out, null, 2) + '\n';
   }
