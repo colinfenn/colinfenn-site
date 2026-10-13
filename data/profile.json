@@ -23,22 +23,7 @@
   "academics": {
     "gpa": "3.6"
   },
-  "coaches": [
-    {
-      "role": "High School Coach",
-      "name": "Placeholder",
-      "team": "San Marin High School",
-      "email": "",
-      "phone": ""
-    },
-    {
-      "role": "Travel Coach",
-      "name": "Placeholder",
-      "team": "NorCal Black 2029",
-      "email": "",
-      "phone": ""
-    }
-  ],
+  "coaches": [],
   "highlightReel": {
     "url": "",
     "title": "60-Second Highlight Reel",
