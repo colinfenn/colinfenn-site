@@ -58,6 +58,7 @@
         if (response.ok) return json;
         const error = new Error((json && (json.message || json.error)) || "Save failed");
         error.status = response.status;
+        error.errors = json && json.errors;
         throw error;
       }).catch(err => {
         if (err && err.name === "AbortError") throw Object.assign(new Error("aborted"), { status: -1 });
@@ -88,6 +89,7 @@
         else {
           const error = new Error((json && (json.message || json.error)) || "Save failed");
           error.status = xhr.status;
+          error.errors = json && json.errors;
           reject(error);
         }
       };
