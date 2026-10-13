@@ -21,6 +21,7 @@
     deleteKey: "",
     localMedia: new Map(),
     xhr: null,
+    fetchAbort: null,
     reader: null,
     cancelRequested: false,
     beforeDelete: "home"
@@ -34,6 +35,37 @@
   }
 
   function request(method, url, body, onProgress) {
+    if (method === "GET" && typeof fetch === "function") {
+      const controller = new AbortController();
+      state.fetchAbort = controller;
+      return fetch("https://api.github.com" + url, {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+          Accept: "application/vnd.github+json",
+          Authorization: "Bearer " + state.token,
+          "X-GitHub-Api-Version": "2022-11-28",
+          "Cache-Control": "no-cache"
+        },
+        signal: controller.signal
+      }).then(async response => {
+        const text = await response.text();
+        let json = null;
+        try {
+          json = text ? JSON.parse(text) : null;
+        } catch (err) {
+          json = { message: text };
+        }
+        if (response.ok) return json;
+        const error = new Error((json && (json.message || json.error)) || "Save failed");
+        error.status = response.status;
+        throw error;
+      }).catch(err => {
+        if (err && err.name === "AbortError") throw Object.assign(new Error("aborted"), { status: -1 });
+        if (err && typeof err.status === "number") throw err;
+        throw Object.assign(new Error("network"), { status: 0 });
+      });
+    }
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open(method, "https://api.github.com" + url);
@@ -171,7 +203,7 @@
   }
 
   function videoType(video) {
-    if (video.type === "youtube" || video.type === "mp4" || video.type === "placeholder") return video.type;
+    if (video.type === "youtube" || video.type === "mp4" || video.type === "placeholder" || video.type === "link") return video.type;
     return L.youtubeId(video.url) ? "youtube" : "mp4";
   }
 
@@ -318,6 +350,7 @@
 
   function logout() {
     if (state.xhr) state.xhr.abort();
+    if (state.fetchAbort) state.fetchAbort.abort();
     state.token = "";
     state.login = "";
     state.videos = null;
@@ -330,12 +363,17 @@
     render();
   }
 
+  function pastedLinkType(url) {
+    return L.youtubeId(url) ? "youtube" : "link";
+  }
+
   function videoProblem() {
     const draft = state.draft;
     if (draft.file) return "";
-    if (!draft.youtube.trim()) return "Choose a video or paste a YouTube link.";
-    if (!L.youtubeId(draft.youtube)) return "That doesn't look like a YouTube link. Open the video and copy the address.";
-    return "";
+    const link = draft.youtube.trim();
+    if (!link) return "Choose a video or paste a YouTube link.";
+    if (L.youtubeId(link) || L.isWebLink(link)) return "";
+    return "That doesn't look like a YouTube link. Open the video and copy the address.";
   }
 
   function goNext() {
@@ -429,10 +467,11 @@
       });
     }
     const useFile = !!draft.file;
+    const link = draft.youtube.trim();
     return L.buildEntry({
       title: draft.title,
-      type: useFile ? "mp4" : "youtube",
-      url: useFile ? draft.url : draft.youtube.trim(),
+      type: useFile ? "mp4" : pastedLinkType(link),
+      url: useFile ? draft.url : link,
       category: draft.category,
       tags: draft.tags,
       velo: draft.velo,
@@ -485,40 +524,34 @@
         }
       }
       if (state.cancelRequested) throw Object.assign(new Error("aborted"), { message: "aborted" });
-      const once = async () => {
-        if (state.cancelRequested) throw Object.assign(new Error("aborted"), { message: "aborted" });
-        const data = practice ? state.videos : await L.readVideos(request);
-        const plan = L.prepareSave(data, action);
-        if (!plan.ok) throw Object.assign(new Error(plan.error), { friendly: plan.error });
+      const decorate = plan => {
         const reel = state.profile && L.featuredReel(state.profile, plan.data, plan.removedUrl);
         if (reel) plan.profileJson = L.profileWithReel(state.profile, reel);
         plan.reel = reel;
-        if (!practice) {
-          state.progressLabel = file ? "Sending it… don't close this page." : "Saving…";
-          renderProgress();
-          await L.commitChanges(request, plan, {
-            mediaPath: mediaPath,
-            mediaBase64: mediaBase64,
-            thumbnailPath: thumbPath,
-            thumbnailBase64: thumbBase64,
-            onProgress: portion => {
-              state.progress = 35 + Math.round(portion * 60);
-              renderProgress();
-            }
-          });
-        }
-        state.progress = 100;
-        state.progressLabel = "Finishing…";
-        renderProgress();
         return plan;
       };
       let plan;
-      try {
-        plan = await once();
-      } catch (err) {
-        if (err.conflict && !practice) plan = await once();
-        else throw err;
+      if (practice) {
+        plan = L.prepareSave(state.videos, action);
+        if (!plan.ok) throw Object.assign(new Error(plan.error), { friendly: plan.error });
+        decorate(plan);
+      } else {
+        state.progressLabel = file ? "Sending it… don't close this page." : "Saving…";
+        renderProgress();
+        plan = await L.saveFresh(request, action, {
+          mediaPath: mediaPath,
+          mediaBase64: mediaBase64,
+          thumbnailPath: thumbPath,
+          thumbnailBase64: thumbBase64,
+          onProgress: portion => {
+            state.progress = 35 + Math.round(portion * 60);
+            renderProgress();
+          }
+        }, decorate);
       }
+      state.progress = 100;
+      state.progressLabel = "Finishing…";
+      renderProgress();
       state.videos = plan.data;
       if (plan.reel && state.profile) state.profile.highlightReel = plan.reel;
       state.busy = false;
@@ -621,6 +654,7 @@
     }
     const id = L.youtubeId(draft.youtube);
     if (id) return '<div class="clip"><img alt="" src="https://i.ytimg.com/vi/' + L.esc(id) + '/hqdefault.jpg"><p class="fine">YouTube link</p></div>';
+    if (L.isWebLink(draft.youtube)) return '<div class="clip"><a class="play link" href="' + L.esc(draft.youtube.trim()) + '" target="_blank" rel="noopener noreferrer">Open clip</a><p class="fine">Link</p></div>';
     if (draft.url) {
       const src = state.localMedia.get(draft.url) || draft.url;
       if (draft.type === "youtube" && L.youtubeId(draft.url)) {
@@ -764,6 +798,7 @@
       const poster = state.localMedia.get(video.thumbnail) || video.thumbnail;
       return '<img alt="" src="' + L.esc(poster) + '">';
     }
+    if (video.type === "link") return '<span class="film" aria-hidden="true"></span>';
     const id = L.youtubeId(video.url);
     if (id && video.type !== "mp4") return '<img alt="" src="https://i.ytimg.com/vi/' + L.esc(id) + '/hqdefault.jpg">';
     const src = state.localMedia.get(video.url) || video.url;
@@ -783,7 +818,7 @@
       "</div>" +
       '<input id="roll" class="sr" type="file" accept="video/*" aria-label="Choose a video from the camera roll">' +
       '<input id="cam" class="sr" type="file" accept="video/*" capture="environment" aria-label="Record a video">' +
-      '<label class="field" for="youtube">Or paste a YouTube link<input id="youtube" type="text" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="https://youtu.be/…" value="' + L.esc(draft.youtube) + '"></label>' +
+      '<label class="field" for="youtube">Or paste a YouTube or GameChanger link<input id="youtube" type="text" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="https://youtu.be/…" value="' + L.esc(draft.youtube) + '"></label>' +
       (draft.file && draft.youtube.trim() ? '<p class="fine">The phone video is the one that will post. Clear it to use the YouTube link.</p>' : "") +
       '<p class="fine">Videos over 50 MB need a YouTube link. Unlisted is fine. Wi-Fi is easier than cell data.</p>',
       dock("Next", "next"));
@@ -870,10 +905,11 @@
     if (!frame || !state.draft) return;
     const draft = state.draft;
     const useFile = !!draft.fileUrl;
+    const link = draft.youtube.trim();
     const entry = L.buildEntry({
       title: draft.title || "Video",
-      type: useFile ? "mp4" : "youtube",
-      url: useFile ? draft.fileUrl : draft.youtube.trim(),
+      type: useFile ? "mp4" : pastedLinkType(link),
+      url: useFile ? draft.fileUrl : link,
       category: draft.category,
       tags: draft.tags,
       velo: draft.velo,
@@ -1046,6 +1082,7 @@
     else if (action === "cancel") {
       state.cancelRequested = true;
       if (state.reader) state.reader.abort();
+      if (state.fetchAbort) state.fetchAbort.abort();
       if (state.xhr) state.xhr.abort();
       state.busy = false;
       state.progress = 0;

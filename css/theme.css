@@ -74,6 +74,7 @@ td.col-team{font-family:Inter,sans-serif;font-size:.95rem;font-weight:500;color:
 .vcard:hover{transform:translateY(-4px)}
 .vmedia{border-radius:16px;overflow:hidden;position:relative;background:linear-gradient(140deg,#13284a,#0a1628)}
 .vmedia>span{font-size:0;width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.12);backdrop-filter:blur(4px);display:grid;place-items:center;transition:transform .3s var(--ease),background .3s}
+.vmedia a.play{color:#fff;text-decoration:none;display:grid;place-items:center;font-family:var(--disp);font-weight:700;letter-spacing:.04em}
 .vmedia>span::before{content:"";border-left:18px solid #fff;border-top:11px solid transparent;border-bottom:11px solid transparent;margin-left:5px}
 .vcard:hover .vmedia>span{transform:scale(1.1);background:var(--accent)}
 .vbody{padding:12px 2px}.vbody h4{font-family:var(--disp);font-size:1.3rem;letter-spacing:.03em;margin:0 0 6px}

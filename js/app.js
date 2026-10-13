@@ -30,7 +30,9 @@
     if (!el || !r) return;
     if (r.url) {
       const id = L.youtubeId(r.url);
-      el.innerHTML = id
+      el.innerHTML = r.type === "link"
+        ? `<a class="play link" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Open clip</a>`
+        : id
         ? `<iframe src="https://www.youtube-nocookie.com/embed/${id}" title="${esc(r.title || "Highlight reel")}" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
         : `<video controls preload="metadata" playsinline src="${esc(r.url)}"></video>`;
       el.classList.add("has");
