@@ -8,6 +8,16 @@
   ],
   "videos": [
     {
+      "title": "Single",
+      "type": "mp4",
+      "url": "/media/videos/single-20261012-214250.mp4",
+      "result": "Single",
+      "battedBall": "Line drive",
+      "date": "October 12, 2026",
+      "caption": "Blah blah",
+      "category": "Hitting"
+    },
+    {
       "title": "Curveball · Game",
       "type": "mp4",
       "url": "/media/videos/curveball-game-20261012-204654.mov",
