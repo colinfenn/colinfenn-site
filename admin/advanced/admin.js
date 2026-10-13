@@ -13,8 +13,8 @@
   var YT = /(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/;
   var VIDEO_EXT = /\.(mp4|webm|mov)(\?|$)/i;
 
-  var HITTING_KEYS = ['season', 'team', 'avg', 'obp', 'slg', 'ops'];
-  var PITCHING_KEYS = ['season', 'team', 'ip', 'era', 'so', 'bbIp', 'spct', 'cpct'];
+  var HITTING_KEYS = ['season', 'team', 'avg', 'obp', 'slg', 'ops', 'cpct'];
+  var PITCHING_KEYS = ['season', 'team', 'ip', 'era', 'so', 'bbIp', 'spct'];
 
   var STAT_COLUMNS = {
     Hitting: [
@@ -23,7 +23,8 @@
       { key: 'avg', label: 'AVG', title: 'Batting average' },
       { key: 'obp', label: 'OBP', title: 'On-base percentage' },
       { key: 'slg', label: 'SLG', title: 'Slugging percentage' },
-      { key: 'ops', label: 'OPS', title: 'On-base plus slugging' }
+      { key: 'ops', label: 'OPS', title: 'On-base plus slugging' },
+      { key: 'cpct', label: 'C%', title: 'Contact percentage' }
     ],
     Pitching: [
       { key: 'season', label: 'Season' },
@@ -32,8 +33,7 @@
       { key: 'era', label: 'ERA', title: 'Earned run average' },
       { key: 'so', label: 'SO', title: 'Strikeouts' },
       { key: 'bbIp', label: 'BB/IP', title: 'Walks per inning' },
-      { key: 'spct', label: 'Strike%', title: 'Strike percentage' },
-      { key: 'cpct', label: 'C%', title: 'Contact percentage' }
+      { key: 'spct', label: 'Strike%', title: 'Strike percentage' }
     ]
   };
 
