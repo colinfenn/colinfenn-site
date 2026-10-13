@@ -115,7 +115,7 @@
       const latest = hist[0];
       const summary = latest ? latest.mph + " mph · " + L.monthLabel(latest.date) : "No reading yet";
       const rows = hist.map(item => `<li><span>${esc(item.mph)} mph</span><span>${esc(L.monthLabel(item.date))}</span></li>`).join("");
-      return `<li class="pitch"><button type="button" class="pitch-btn" aria-expanded="false" aria-controls="pitch-panel-${i}"><span class="pitch-name">${esc(pitch.name)}</span><span class="pitch-now">${esc(summary)}</span></button><div class="pitch-panel" id="pitch-panel-${i}" hidden><ul class="pitch-log">${rows}</ul>${L.trendSvg(hist)}</div></li>`;
+      return `<li class="pitch"><button type="button" class="pitch-btn" aria-expanded="false" aria-controls="pitch-panel-${i}"><span class="pitch-chevron" aria-hidden="true">▸</span><span class="pitch-main"><span class="pitch-name">${esc(pitch.name)}</span><span class="pitch-now">${esc(summary)}</span></span><span class="pitch-action">View history</span></button><div class="pitch-panel" id="pitch-panel-${i}" hidden><ul class="pitch-log">${rows}</ul>${L.trendSvg(hist)}</div></li>`;
     }).join("");
     root.addEventListener("click", event => {
       const btn = event.target.closest(".pitch-btn");
