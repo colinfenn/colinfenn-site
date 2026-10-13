@@ -295,15 +295,12 @@ collections:
             widget: list
             summary: "{{title}}"
             collapsed: true
+            hint: Each honor is a card. The title is the big line. Season, school, and level make the subline, like 2026 · San Marin HS Freshman.
             fields:
-              - { label: Title, name: title, widget: string, hint: "Example: Freshman Team MVP" }
-              - { label: School or team, name: org, widget: string }
+              - { label: Title, name: title, widget: string, hint: "Shown large. Example: Team MVP" }
+              - { label: School or team, name: org, widget: string, hint: "Example: San Marin High School" }
               - { label: Season, name: season, widget: string, required: false, hint: "Example: 2026" }
-              - label: Show this in the gold banner
-                name: featured
-                widget: boolean
-                default: false
-                hint: Turn on for the honor that should show as the gold bar in Honors.
+              - { label: Level, name: level, widget: string, required: false, hint: "Example: Freshman. Shown after the school." }
           - label: Coaches
             name: coaches
             widget: list
