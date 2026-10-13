@@ -18,8 +18,7 @@ a{color:var(--accent)}img,video,iframe{max-width:100%}
 }
 @media(max-width:899px){.brand{width:100%;text-align:center;white-space:normal}.nav nav{width:100%;gap:10px 14px}}
 .hero{background:linear-gradient(135deg,var(--navy),var(--navy2) 60%,#1d3f70);color:#fff;padding:40px 0 56px}
-.hero-in{display:grid;gap:28px;grid-template-columns:1fr}
-@media(min-width:860px){.hero-in{grid-template-columns:340px 1fr;align-items:center}}
+.hero-in{display:flex;flex-direction:column;align-items:center;gap:28px}
 .photo{aspect-ratio:4/5;border-radius:var(--r);background:repeating-linear-gradient(45deg,#1b3a66,#1b3a66 12px,#16325a 12px,#16325a 24px);display:grid;place-items:center;border:2px dashed #3d5f8f;background-size:cover;background-position:center;max-width:340px;width:100%;margin:0 auto}
 .photo span{background:rgba(0,0,0,.35);padding:6px 12px;border-radius:999px;font-size:.85rem}
 .photo.has-img{border:0}.photo.has-img span{display:none}
@@ -57,10 +56,9 @@ h3{margin:32px 0 12px;text-transform:uppercase;font-size:1rem;letter-spacing:.1e
 .keynums{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:18px 0 0;padding:16px 0 0;border-top:1px solid rgba(255,255,255,.16)}
 .keynums b{display:block;font-size:clamp(1.35rem,5vw,1.8rem);line-height:1}
 .keynums span{display:block;margin-top:4px;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:#9fb0c9}
-.hero-text{container-type:inline-size}
-.id-line{font-size:clamp(1rem,7.1cqi,2.15rem);line-height:1.25;font-weight:800;margin:0;text-transform:none;letter-spacing:0;white-space:nowrap}
+.hero-text{container-type:inline-size;width:100%}
+.id-line{font-size:clamp(1rem,7.1cqi,2.15rem);line-height:1.25;font-weight:800;margin:0;text-transform:none;letter-spacing:0;white-space:nowrap;text-align:center}
 p.id-line{margin-top:.28em}
-#teams-line{text-align:center}
 .fresh-kicker{margin:16px 0 8px;font-weight:700;color:var(--muted)}
 .season-line{margin:0 0 10px;font-size:.85rem;font-weight:600;line-height:1.35;color:var(--muted)}
 .fresh-nums{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 16px;padding:0}
