@@ -1,6 +1,22 @@
 {
   "tables": [
     {
+      "title": "Pitching",
+      "example": false,
+      "columns": [
+        { "key": "season", "label": "Season" },
+        { "key": "team", "label": "Team" },
+        { "key": "ip", "label": "IP", "title": "Innings pitched" },
+        { "key": "so", "label": "SO", "title": "Strikeouts" },
+        { "key": "era", "label": "ERA", "title": "Earned run average" },
+        { "key": "bbIp", "label": "BB/IP", "title": "Walks per inning" },
+        { "key": "spct", "label": "Strike%", "title": "Strike percentage" }
+      ],
+      "rows": [
+        { "season": "2026", "team": "San Marin HS (Freshman)", "ip": "41.0", "so": "42", "era": "5.29", "bbIp": ".585", "spct": "55.64%" }
+      ]
+    },
+    {
       "title": "Hitting",
       "example": false,
       "columns": [
@@ -14,22 +30,6 @@
       ],
       "rows": [
         { "season": "2026", "team": "San Marin HS (Freshman)", "avg": ".408", "obp": ".491", "slg": ".551", "ops": "1.042", "cpct": "89.80%" }
-      ]
-    },
-    {
-      "title": "Pitching",
-      "example": false,
-      "columns": [
-        { "key": "season", "label": "Season" },
-        { "key": "team", "label": "Team" },
-        { "key": "ip", "label": "IP", "title": "Innings pitched" },
-        { "key": "era", "label": "ERA", "title": "Earned run average" },
-        { "key": "so", "label": "SO", "title": "Strikeouts" },
-        { "key": "bbIp", "label": "BB/IP", "title": "Walks per inning" },
-        { "key": "spct", "label": "Strike%", "title": "Strike percentage" }
-      ],
-      "rows": [
-        { "season": "2026", "team": "San Marin HS (Freshman)", "ip": "41.0", "era": "5.29", "so": "42", "bbIp": ".585", "spct": "55.64%" }
       ]
     }
   ]

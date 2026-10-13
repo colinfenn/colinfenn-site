@@ -14,7 +14,7 @@
   var VIDEO_EXT = /\.(mp4|webm|mov)(\?|$)/i;
 
   var HITTING_KEYS = ['season', 'team', 'avg', 'obp', 'slg', 'ops', 'cpct'];
-  var PITCHING_KEYS = ['season', 'team', 'ip', 'era', 'so', 'bbIp', 'spct'];
+  var PITCHING_KEYS = ['season', 'team', 'ip', 'so', 'era', 'bbIp', 'spct'];
 
   var STAT_COLUMNS = {
     Hitting: [
@@ -30,8 +30,8 @@
       { key: 'season', label: 'Season' },
       { key: 'team', label: 'Team' },
       { key: 'ip', label: 'IP', title: 'Innings pitched' },
-      { key: 'era', label: 'ERA', title: 'Earned run average' },
       { key: 'so', label: 'SO', title: 'Strikeouts' },
+      { key: 'era', label: 'ERA', title: 'Earned run average' },
       { key: 'bbIp', label: 'BB/IP', title: 'Walks per inning' },
       { key: 'spct', label: 'Strike%', title: 'Strike percentage' }
     ]
@@ -197,8 +197,8 @@
     data = data || {};
     var out = {
       tables: [
-        statTable('Hitting', data.hittingExample, data.hittingNote, data.hittingRows, HITTING_KEYS),
-        statTable('Pitching', data.pitchingExample, data.pitchingNote, data.pitchingRows, PITCHING_KEYS)
+        statTable('Pitching', data.pitchingExample, data.pitchingNote, data.pitchingRows, PITCHING_KEYS),
+        statTable('Hitting', data.hittingExample, data.hittingNote, data.hittingRows, HITTING_KEYS)
       ]
     };
     return JSON.stringify(out, null, 2) + '\n';

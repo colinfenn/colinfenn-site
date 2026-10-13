@@ -172,8 +172,8 @@ collections:
               - { label: Season, name: season, widget: string, hint: "Example: 2026" }
               - { label: Team, name: team, widget: string }
               - { label: IP, name: ip, widget: string, required: false, hint: "Innings pitched, example 41.0" }
-              - { label: ERA, name: era, widget: string, required: false, hint: "Earned run average, example 5.29" }
               - { label: SO, name: so, widget: string, required: false, hint: "Strikeouts, example 42" }
+              - { label: ERA, name: era, widget: string, required: false, hint: "Earned run average, example 5.29" }
               - { label: BB/IP, name: bbIp, widget: string, required: false, hint: "Walks per inning, example .585" }
               - { label: "Strike%", name: spct, widget: string, required: false, hint: "Strike percentage, example 55.64%" }
 
