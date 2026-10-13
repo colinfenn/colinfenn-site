@@ -25,6 +25,7 @@
     play: "Play",
     position: "Position",
     workout: "Workout",
+    angle: "Camera angle",
     setting: "Where"
   };
   const MAX_CUSTOM_TAG = 30;
@@ -41,9 +42,9 @@
   };
 
   function tagsFor(category) {
-    if (category === "Pitching") return { pitch: PITCHES, setting: SETTINGS };
-    if (category === "Hitting") return { result: HITTING_RESULTS, pitchFaced: PITCH_FACED, battedBall: BATTED_BALLS, setting: HITTING_WHERE };
-    if (category === "Fielding") return { play: FIELD_PLAYS, position: POSITIONS, setting: FIELD_WHERE };
+    if (category === "Pitching") return { pitch: PITCHES, angle: ANGLES, setting: SETTINGS };
+    if (category === "Hitting") return { result: HITTING_RESULTS, pitchFaced: PITCH_FACED, battedBall: BATTED_BALLS, angle: ANGLES, setting: HITTING_WHERE };
+    if (category === "Fielding") return { play: FIELD_PLAYS, position: POSITIONS, angle: ANGLES, setting: FIELD_WHERE };
     if (category === "Workouts/Training") return { workout: WORKOUTS };
     return {};
   }
@@ -89,6 +90,7 @@
     else if (draft.category === "Fielding" && draft.play) parts.push(draft.play);
     else if (draft.category === "Workouts/Training" && draft.workout) parts.push(draft.workout);
     else if (draft.category) parts.push(draft.category);
+    if (tags.angle && draft.angle) parts.push(draft.angle);
     if (tags.setting && draft.setting) parts.push(draft.setting);
     return parts.join(" · ");
   }
@@ -211,7 +213,7 @@
   }
 
   function cardTags(video) {
-    return ["pitch", "result", "pitchFaced", "battedBall", "play", "position", "workout", "setting", "velo", "opponent"]
+    return ["pitch", "result", "pitchFaced", "battedBall", "play", "position", "workout", "angle", "setting", "velo", "opponent"]
       .map(key => video[key])
       .concat(normalizeTags(video.tags), [video.date])
       .filter(Boolean);
