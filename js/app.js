@@ -20,9 +20,7 @@
     if(hon.length){$('#honors-list').innerHTML=hon.map(h=>`<li><span class="trophy" aria-hidden="true">🏆</span><div><strong>${esc(h.title)}</strong><div class="m">${esc([h.org,h.season&&h.season+' season'].filter(Boolean).join(' · '))}</div></div></li>`).join('');
       const f=hon.find(h=>h.featured);const aw=$('#award');if(aw){if(f)aw.textContent=`🏆 ${f.title} · ${f.org.replace(' High School',' HS')} · ${f.season}`;else aw.remove()}}
     if(p.glance)$('#glance-list').innerHTML=p.glance.map(g=>`<li${g.highlight?' class="hl"':''}><b>${esc(g.value)}</b><span>${esc(g.label)}</span></li>`).join('');
-    const r=p.highlightReel||{};
-    if(r.url)$('#reel-media').innerHTML=media(r),$('#reel-media').classList.add('has');
-    $('#reel-caption').textContent=r.caption||'';
+    if(!reelLocked) paintReel(p.highlightReel||{});
     const PH='<span class="badge">PLACEHOLDER</span>';
     if(p.note&&p.note.text)$('#note-text').innerHTML=(p.note.placeholder?PH:'')+esc(p.note.text);
     const refs=(p.coaches||[]).filter(c=>c.quote);
@@ -54,7 +52,14 @@
     $('#schedule-list').innerHTML=(s.events||[]).map(e=>`<li><div class="d">${esc(e.date)}</div><div><strong>${esc(e.event)}</strong><div class="m">${esc(e.team||'')} · ${esc(e.location||'')}</div></div></li>`).join('')||'<li>Schedule coming soon.</li>';
   }).catch(()=>{});
 
+  let reelLocked=false;
   function ytId(u){const m=String(u).match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/);return m&&m[1]}
+  function paintReel(r){
+    const el=$('#reel-media'); if(!el||!r) return;
+    if(r.url){el.innerHTML=media(r);el.classList.add('has')}
+    const cap=$('#reel-caption'); if(cap) cap.textContent=r.caption||'';
+  }
+  function clipTags(v){return [v.pitch,v.result,v.pitchFaced,v.battedBall,v.play,v.position,v.workout,v.setting,v.velo,v.opponent,...(Array.isArray(v.tags)?v.tags:[])].filter(Boolean)}
   function media(v){
     const t=v.type||(ytId(v.url)?'youtube':/\.(mp4|webm|mov)(\?|$)/i.test(v.url||'')?'mp4':'placeholder');
     if(t==='youtube'&&ytId(v.url))return `<iframe src="https://www.youtube-nocookie.com/embed/${ytId(v.url)}" title="${esc(v.title)}" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`;
@@ -63,19 +68,21 @@
   }
   get('data/videos.json').then(d=>{
     const vids=d.videos||[];
+    const featured=vids.find(v=>v.featured&&v.url&&v.type!=='placeholder');
+    if(featured){reelLocked=true;paintReel(featured)}
     const cats=d.categories||[...new Set(vids.map(v=>v.category).filter(Boolean))];
     let cat=cats[0],f='All';
     const tabs=$('#vtabs');
     const render=()=>{
       tabs.innerHTML=cats.map(c=>{const n=vids.filter(v=>v.category===c&&v.type!=='placeholder'&&v.url).length;return `<button type="button" role="tab" aria-selected="${c===cat}" tabindex="${c===cat?0:-1}">${esc(c)}${n?` <small>${n}</small>`:''}</button>`}).join('');
       const inCat=vids.filter(v=>v.category===cat);
-      const tags=['All',...new Set(inCat.flatMap(v=>[v.pitch,v.angle,v.setting]).filter(Boolean))];
+      const tags=['All',...new Set(inCat.flatMap(clipTags))];
       $('#filters').innerHTML=tags.length>2?tags.map(c=>`<button type="button" aria-pressed="${c===f}">${esc(c)}</button>`).join(''):'';
-      const list=inCat.filter(v=>f==='All'||[v.pitch,v.angle,v.setting].includes(f));
+      const list=inCat.filter(v=>f==='All'||clipTags(v).includes(f));
       $('#videos').setAttribute('role','tabpanel');
       $('#videos').innerHTML=list.map(card).join('')||'<p>No videos in this category yet.</p>';
     };
-    const card=v=>`<article class="vcard"><div class="vmedia">${media(v)}</div><div class="vbody"><h4>${esc(v.title)}</h4><div class="tags">${[v.pitch,v.angle,v.setting,v.date].filter(Boolean).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>${v.caption?`<p>${esc(v.caption)}</p>`:''}</div></article>`;
+    const card=v=>`<article class="vcard"><div class="vmedia">${media(v)}</div><div class="vbody"><h4>${esc(v.title)}</h4><div class="tags">${clipTags(v).concat(v.date).filter(Boolean).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>${v.caption?`<p>${esc(v.caption)}</p>`:''}</div></article>`;
     tabs.addEventListener('click',e=>{const b=e.target.closest('button');if(b){cat=cats[[...tabs.children].indexOf(b)];f='All';render();tabs.children[cats.indexOf(cat)].focus()}});
     tabs.addEventListener('keydown',e=>{const k={ArrowRight:1,ArrowLeft:-1}[e.key];if(k){cat=cats[(cats.indexOf(cat)+k+cats.length)%cats.length];f='All';render();tabs.children[cats.indexOf(cat)].focus()}});
     $('#filters').addEventListener('click',e=>{const b=e.target.closest('button');if(b){f=b.textContent;render()}});

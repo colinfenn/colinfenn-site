@@ -102,7 +102,7 @@ collections:
                   - "Behind mound"
                   - Front
                   - Side
-              - label: Game or bullpen
+              - label: Game, bullpen, or practice
                 name: setting
                 widget: select
                 required: false
@@ -111,6 +111,94 @@ collections:
                   - { label: "Not tagged", value: "" }
                   - Game
                   - Bullpen
+                  - Practice
+                  - "Batting practice"
+                hint: Pitching uses Game or Bullpen. Hitting uses Game or Batting practice. Fielding uses Game or Practice.
+              - label: Hitting result
+                name: result
+                widget: select
+                required: false
+                default: ""
+                options:
+                  - { label: "Not tagged", value: "" }
+                  - Single
+                  - Double
+                  - Triple
+                  - "Home run"
+                  - Walk
+                  - "Line drive out"
+              - label: Pitch faced
+                name: pitchFaced
+                widget: select
+                required: false
+                default: ""
+                options:
+                  - { label: "Not tagged", value: "" }
+                  - Fastball
+                  - "Breaking ball"
+                  - Off-speed
+              - label: Batted ball
+                name: battedBall
+                widget: select
+                required: false
+                default: ""
+                options:
+                  - { label: "Not tagged", value: "" }
+                  - "Line drive"
+                  - "Ground ball"
+                  - "Fly ball"
+              - label: Fielding play
+                name: play
+                widget: select
+                required: false
+                default: ""
+                options:
+                  - { label: "Not tagged", value: "" }
+                  - Catch
+                  - "Diving catch"
+                  - Throw/assist
+                  - "Ground ball"
+                  - "Fly ball"
+                  - Relay
+              - label: Position
+                name: position
+                widget: select
+                required: false
+                default: ""
+                options:
+                  - { label: "Not tagged", value: "" }
+                  - LF
+                  - CF
+                  - RF
+                  - P
+              - label: Workout
+                name: workout
+                widget: select
+                required: false
+                default: ""
+                options:
+                  - { label: "Not tagged", value: "" }
+                  - Velo
+                  - "Long toss"
+                  - Weights
+                  - Speed/agility
+                  - Bullpen
+              - label: Speed
+                name: velo
+                widget: string
+                required: false
+                hint: "Optional. Example: 75 mph. Shown on the card."
+              - label: Opponent
+                name: opponent
+                widget: string
+                required: false
+                hint: "Optional, for a game. Example: Marin Catholic."
+              - label: Feature this on the highlight reel
+                name: featured
+                widget: boolean
+                default: false
+                required: false
+                hint: Only one clip should be on. It replaces the video at the top of the site.
               - label: Date
                 name: date
                 widget: string
