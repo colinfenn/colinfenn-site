@@ -419,6 +419,9 @@ test("pitch history expands newest first and draws a trend after two readings", 
   assert.match(html, /href="#videos">Videos<\/a><a href="#stats">Stats<\/a><a href="#velo">Velo<\/a><a href="#honors">Honors<\/a><a href="#about">About Me<\/a><a href="#contact">Contact<\/a>/);
   assert.match(html, /href="#about"/);
   assert.match(html, /About Me video coming soon/);
+  assert.match(html, /Colin Fenn – LHP\/OF – Class of 2029/);
+  assert.match(html, /id="teams-line">San Marin HS – NorCal Black 2029/);
+  assert.match(fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8"), /join\(" – "\)/);
   assert.ok(html.indexOf('id="velo"') > 0 && html.indexOf('id="velo"') < html.indexOf('id="honors"'));
   assert.match(html, /id="velo" class="sec alt"/);
   assert.match(html, /id="honors" class="sec"/);

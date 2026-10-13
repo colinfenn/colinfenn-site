@@ -56,9 +56,16 @@
 
   let reelLocked = false;
   get("data/profile.json").then(p => {
-    const idLine = [p.name, p.position, p.gradYear ? "Class of " + p.gradYear : "", schoolShort(p.school), p.travelTeam].filter(Boolean).join(", ");
+    const dash = parts => parts.filter(v => v && !isPh(v)).join(" – ");
+    const idLine = dash([p.name, p.position, p.gradYear ? "Class of " + p.gradYear : ""]);
+    const teamsLine = dash([schoolShort(p.school), p.travelTeam]);
     const id = $("#id-line");
     if (id && idLine) id.textContent = idLine;
+    const teams = $("#teams-line");
+    if (teams) {
+      if (teamsLine) teams.textContent = teamsLine;
+      else teams.remove();
+    }
     if (p.photo) {
       const ph = $("#photo");
       ph.style.backgroundImage = `url("${encodeURI(p.photo)}")`;
