@@ -48,8 +48,8 @@ collections:
             fields:
               - label: Title
                 name: title
-                widget: string
-                hint: "Short name, like Bullpen sinker or Friday highlights."
+                widget: hidden
+                required: false
               - label: Categories
                 name: categories
                 widget: select

@@ -384,10 +384,8 @@
       if (problem) return setError(problem);
     }
     if (state.step === "category" && !L.videoCategories(state.draft).length) return setError("Pick a category.");
-    if (state.step === "details") {
-      syncTitle();
-      if (!String(state.draft.title || "").trim()) return setError("Add a title.");
-      if (!L.formatISODate(state.draft.dateISO)) state.draft.dateISO = L.todayISO(new Date());
+    if (state.step === "details" && !L.formatISODate(state.draft.dateISO)) {
+      state.draft.dateISO = L.todayISO(new Date());
     }
     syncTitle();
     const steps = L.stepsFor(state.draft.category);
@@ -593,11 +591,11 @@
   }
 
   function post() {
+    if (!L.formatISODate(state.draft.dateISO)) state.draft.dateISO = L.todayISO(new Date());
     syncTitle();
     const problem = videoProblem();
     if (problem) return setError(problem);
     if (!L.videoCategories(state.draft).length) return setError("Pick a category.");
-    if (!String(state.draft.title || "").trim()) return setError("Add a title.");
     const entry = entryForSave();
     if (state.draft.file) entry.url = "/media/videos/pending.mp4";
     const invalid = L.validateEntry(entry);
@@ -790,12 +788,12 @@
   function rowHtml(video) {
     const key = L.esc(L.videoKey(video));
     const featured = video.featured ? '<p class="reel-flag">At the top of your site</p>' : "";
-    return '<article class="row"><div class="thumb">' + thumbHtml(video) + '</div><div class="row-copy"><h2>' + L.esc(video.title || "Video") + "</h2><p>" + L.esc(L.videoCategories(video).join(", ")) + "</p>" + featured + (video.caption ? "<p class=\"cap\">" + L.esc(video.caption) + "</p>" : "") + '</div><div class="row-actions"><button type="button" data-action="edit" data-key="' + key + '">Edit</button><button type="button" class="danger" data-action="ask-delete" data-key="' + key + '">Delete</button></div></article>';
+    return '<article class="row"><div class="thumb">' + thumbHtml(video) + '</div><div class="row-copy"><h2>' + L.esc(L.suggestedTitle(video) || video.title || "Video") + "</h2><p>" + L.esc(L.videoCategories(video).join(", ")) + "</p>" + featured + (video.caption ? "<p class=\"cap\">" + L.esc(video.caption) + "</p>" : "") + '</div><div class="row-actions"><button type="button" data-action="edit" data-key="' + key + '">Edit</button><button type="button" class="danger" data-action="ask-delete" data-key="' + key + '">Delete</button></div></article>';
   }
 
   function blankHtml(video) {
     const key = L.esc(L.videoKey(video));
-    return '<article class="row row-blank"><div class="thumb"><span class="film" aria-hidden="true"></span></div><div class="row-copy"><h2>' + L.esc(video.title || "Blank card") + '</h2><p>' + L.esc(video.category || "") + '</p></div><div class="row-actions"><button type="button" class="danger" data-action="ask-delete" data-key="' + key + '">Delete</button></div></article>';
+    return '<article class="row row-blank"><div class="thumb"><span class="film" aria-hidden="true"></span></div><div class="row-copy"><h2>' + L.esc(L.suggestedTitle(video) || video.title || "Blank card") + '</h2><p>' + L.esc(video.category || "") + '</p></div><div class="row-actions"><button type="button" class="danger" data-action="ask-delete" data-key="' + key + '">Delete</button></div></article>';
   }
 
   function thumbHtml(video) {
@@ -846,10 +844,7 @@
 
   function detailsStep() {
     const hint = L.CAPTION_HINTS[L.videoCategories(state.draft)[0]] || "What happened in the clip.";
-    const suggest = state.draft.titleDirty ? '<button type="button" class="text-btn" data-action="suggest">Fill in a title from my picks</button>' : '<p class="fine">Filled in from what you tapped. You can change it.</p>';
     return shell("Details",
-      '<label class="field" for="title">Title<input id="title" type="text" maxlength="120" autocomplete="off" value="' + L.esc(state.draft.title) + '"></label>' +
-      suggest +
       '<label class="field" for="caption">Caption<textarea id="caption" rows="3" placeholder="' + L.esc(hint) + '">' + L.esc(state.draft.caption) + "</textarea></label>" +
       '<p class="fine">Example: ' + L.esc(hint) + "</p>" +
       '<label class="field" for="date">Date<input id="date" type="date" value="' + L.esc(state.draft.dateISO) + '"></label>' +
@@ -869,8 +864,6 @@
     const tags = tagFields();
     return shell("Edit video",
       clipHtml() +
-      '<label class="field" for="title">Title<input id="title" type="text" maxlength="120" autocomplete="off" value="' + L.esc(state.draft.title) + '"></label>' +
-      '<button type="button" class="text-btn" data-action="suggest">Fill in a title from my picks</button>' +
       '<p class="lead">Pick every tab this clip belongs on.</p>' +
       chips("category", "Categories", L.CATEGORIES, state.draft.categories) +
       (tags || "") + customTagHtml() +
@@ -884,7 +877,7 @@
 
   function deleteScreen() {
     const video = findVideo(state.deleteKey);
-    const title = video ? video.title : "this video";
+    const title = video ? (L.suggestedTitle(video) || video.title) : "this video";
     return shell("Delete video",
       '<p class="lead">Delete <strong>' + L.esc(title) + "</strong>?</p><p>This takes it off your site. You can't undo it.</p>" +
       '<div class="stack"><button type="button" class="btn btn-danger" data-action="confirm-delete">Delete</button><button type="button" class="btn btn-secondary" data-action="back">Keep it</button></div>',
@@ -937,11 +930,6 @@
   }
 
   function bindFields() {
-    const title = $("#title");
-    if (title) title.addEventListener("input", () => {
-      state.draft.title = title.value;
-      state.draft.titleDirty = true;
-    });
     const caption = $("#caption");
     if (caption) caption.addEventListener("input", () => {
       state.draft.caption = caption.value;
@@ -1068,12 +1056,6 @@
       render();
       const input = $("#tag-text");
       if (input) input.focus();
-    } else if (action === "suggest") {
-      state.draft.titleDirty = false;
-      syncTitle();
-      render();
-      const title = $("#title");
-      if (title) title.focus();
     } else if (action === "clear-file") {
       if (state.draft.fileUrl) URL.revokeObjectURL(state.draft.fileUrl);
       if (state.draft.posterUrl) URL.revokeObjectURL(state.draft.posterUrl);

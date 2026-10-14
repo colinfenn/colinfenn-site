@@ -105,19 +105,38 @@
     return out;
   }
 
+  function shortDate(value) {
+    var match = String(value || '').match(/^([A-Za-z]+)\s+(\d{1,2})/);
+    if (!match) return '';
+    var months = {
+      january: 'Jan', february: 'Feb', march: 'Mar', april: 'Apr', may: 'May', june: 'Jun',
+      july: 'Jul', august: 'Aug', september: 'Sep', october: 'Oct', november: 'Nov', december: 'Dec'
+    };
+    var short = months[match[1].toLowerCase()];
+    if (!short) return '';
+    return short + ' ' + String(Number(match[2]));
+  }
+
+  function generatedTitle(v, categories, tags) {
+    var head = tags.length ? tags.join(' · ') : (categories[0] || '');
+    var when = shortDate(v && v.date);
+    if (head && when) return head + ' · ' + when;
+    return head;
+  }
+
   function diskVideo(v) {
     v = v || {};
     var url = pickVideoUrl(v.file, v.youtube);
     if (!url && v.url) url = text(v.url);
     var categories = normalizeCategories(v.categories, v.category);
     var category = categories[0] || normalizeCategory(v.category);
+    var tags = tagList(v);
     var item = {
-      title: v.title || '',
+      title: text(v.title) || generatedTitle(v, categories, tags),
       type: inferType(url),
       url: url
     };
     if (text(v.thumbnail)) item.thumbnail = text(v.thumbnail);
-    var tags = tagList(v);
     if (tags.length) item.tags = tags;
     if (categories.indexOf('Pitching') >= 0 && text(v.velo)) item.velo = text(v.velo);
     if (v.featured === true || v.featured === 'true') item.featured = true;

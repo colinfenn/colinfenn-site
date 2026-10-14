@@ -28,6 +28,47 @@ test("suggested titles follow the taps", () => {
   assert.equal(L.suggestedTitle({ category: "Fielding", tags: ["Catch", "Game"] }), "Catch · Game");
   assert.equal(L.suggestedTitle({ category: "Training/Workouts", tags: ["Weights"] }), "Weights");
   assert.equal(L.suggestedTitle({ category: "Pitching", tags: [] }), "Pitching");
+  assert.equal(L.suggestedTitle({ category: "Pitching", tags: ["K", "Sinker"], date: "October 13, 2026" }), "Sinker · K · Oct 13");
+  assert.equal(L.suggestedTitle({ category: "Pitching", tags: [], dateISO: "2026-10-13" }), "Pitching · Oct 13");
+  const kept = L.buildEntry({
+    title: "K swinging vs Windsor righty",
+    type: "mp4",
+    url: "/media/videos/kept.mov",
+    category: "Pitching",
+    tags: ["Sinker", "K"],
+    date: "October 13, 2026",
+    caption: "Kept"
+  });
+  assert.equal(kept.title, "K swinging vs Windsor righty");
+  const generated = L.buildEntry({
+    type: "mp4",
+    url: "/media/videos/generated.mp4",
+    category: "Pitching",
+    tags: ["K", "Sinker"],
+    date: "October 13, 2026",
+    caption: "Generated"
+  });
+  assert.equal(generated.title, "Sinker · K · Oct 13");
+  const card = L.cardHtml(Object.assign({}, kept, { mediaHtml: "" }));
+  assert.doesNotMatch(card, /K swinging vs Windsor righty/);
+  assert.match(L.mediaHtml({
+    type: "mp4",
+    url: "/media/videos/kept.mov",
+    thumbnail: "/media/videos/kept.jpg",
+    title: "K swinging vs Windsor righty",
+    category: "Pitching",
+    tags: ["Sinker", "K"],
+    date: "October 13, 2026"
+  }), /alt="Sinker · K · Oct 13"/);
+  const uploader = fs.readFileSync(path.join(__dirname, "../admin/app.js"), "utf8");
+  const details = uploader.slice(uploader.indexOf("function detailsStep"), uploader.indexOf("function previewStep"));
+  const edit = uploader.slice(uploader.indexOf("function editScreen"), uploader.indexOf("function deleteScreen"));
+  assert.match(details, /for="caption"/);
+  assert.doesNotMatch(details, /for="title"/);
+  assert.doesNotMatch(edit, /for="title"/);
+  assert.match(uploader, /suggestedTitle\(video\)/);
+  const yml = fs.readFileSync(path.join(__dirname, "../admin/advanced/config.yml"), "utf8");
+  assert.match(yml, /name: title\s+widget: hidden\s+required: false/);
 });
 
 test("every category uses the same five steps, with its own tags", () => {
@@ -83,7 +124,7 @@ test("a clip can sit in more than one category", () => {
   assert.equal(editor.videos[0].category, undefined);
   const back = JSON.parse(global.ColinAdmin.videosToFile({ videos: editor.videos }));
   assert.equal(back.videos.length, editor.videos.length);
-  assert.equal(back.videos[0].title, "Bullpen vs varsity batters");
+  assert.equal(back.videos[0].title, "Bullpen vs varsity batters w coach Jason Franks");
   assert.equal(back.videos[0].category, "Pitching");
   assert.deepEqual(back.videos[0].categories, ["Pitching", "Training/Workouts"]);
   assert.deepEqual(back.videos[4].categories, ["Hitting"]);
@@ -126,7 +167,7 @@ test("a pitching post keeps the site's video shape and drops unused tags", () =>
   assert.equal(saved.data.categories[0], "Pitching");
   assert.equal(saved.data.categories.length, 4);
   assert.match(saved.json, /"url": "\/media\/videos\/sinker.mp4"/);
-  assert.equal(saved.message, "Post video: Sinker · Bullpen");
+  assert.equal(saved.message, "Post video: Sinker · Bullpen · Oct 12");
 });
 
 test("speed stays on pitching clips and is dropped everywhere else", () => {
@@ -632,12 +673,12 @@ test("reading videos.json decodes GitHub's base64 content", async () => {
     categories: video.categories
   })), [
     {
-      title: "Bullpen vs varsity batters",
+      title: "Bullpen vs varsity batters w coach Jason Franks",
       url: "/media/videos/bullpen-vs-varsity-batters-20261013-220355.mp4",
       tags: ["Sinker", "Curveball", "Slider", "Changeup", "Bullpen"],
       thumbnail: undefined,
       date: "October 13, 2026",
-      caption: "Mix of sinker, slider, changeup, and curveball",
+      caption: "Mix of sinker, slider, changeup, and curveball.  Bullpen vs varsity hitters, as a freshman pitcher.  With pitching coach Jason Franks.",
       category: "Pitching",
       categories: ["Pitching", "Training/Workouts"]
     },
@@ -831,7 +872,7 @@ test("pitch history expands newest first and draws a trend after two readings", 
 });
 
 test("admin pages bust caches and stay parseable on iOS 15 Safari", () => {
-  const version = "v=3";
+  const version = "v=4";
   const admin = fs.readFileSync(path.join(__dirname, "../admin/index.html"), "utf8");
   assert.match(admin, new RegExp("/admin/app\\.css\\?" + version));
   assert.match(admin, new RegExp("/admin/logic\\.js\\?" + version));
