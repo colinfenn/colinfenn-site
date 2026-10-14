@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
+const vm = require("vm");
 const L = require("../admin/logic.js");
 
 const base = {
@@ -747,4 +748,39 @@ test("pitch history expands newest first and draws a trend after two readings", 
   assert.match(uploader, /canvas/);
   assert.match(uploader, /Videos coming soon/);
   assert.match(uploader, /You can pick more than one/);
+});
+
+test("admin pages bust caches and stay parseable on iOS 15 Safari", () => {
+  const version = "v=2";
+  const admin = fs.readFileSync(path.join(__dirname, "../admin/index.html"), "utf8");
+  assert.match(admin, new RegExp("/admin/app\\.css\\?" + version));
+  assert.match(admin, new RegExp("/admin/logic\\.js\\?" + version));
+  assert.match(admin, new RegExp("/admin/app\\.js\\?" + version));
+  assert.match(admin, /getRegistrations/);
+  assert.match(admin, /unregister/);
+  const home = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  assert.match(home, new RegExp("admin/logic\\.js\\?" + version));
+  const advanced = fs.readFileSync(path.join(__dirname, "../admin/advanced/index.html"), "utf8");
+  assert.match(advanced, new RegExp("/admin/advanced/admin\\.css\\?" + version));
+  assert.match(advanced, new RegExp("/admin/advanced/admin\\.js\\?" + version));
+
+  const toml = fs.readFileSync(path.join(__dirname, "../netlify.toml"), "utf8");
+  assert.match(toml, /for = "\/admin\/\*"[\s\S]*?Cache-Control = "no-cache"/);
+  assert.equal(fs.existsSync(path.join(__dirname, "../sw.js")), false);
+  assert.equal(fs.existsSync(path.join(__dirname, "../service-worker.js")), false);
+  const pages = [admin, home, advanced, fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8")];
+  pages.forEach(src => assert.doesNotMatch(src, /serviceWorker\.register/));
+
+  const inline = admin.match(/<script>([\s\S]*?)<\/script>/);
+  assert.ok(inline, "admin page includes the service-worker cleanup");
+  const scripts = ["admin/app.js", "admin/logic.js", "admin/advanced/admin.js"];
+  [inline[1]].concat(scripts.map(file => fs.readFileSync(path.join(__dirname, "..", file), "utf8"))).forEach((src, index) => {
+    const filename = index === 0 ? "admin/index.html" : scripts[index - 1];
+    new vm.Script(src, { filename: filename });
+    assert.doesNotMatch(src, /\?\?=|\|\|=|&&=|\?\.=/);
+    assert.doesNotMatch(src, /\.at\s*\(/);
+    assert.doesNotMatch(src, /structuredClone/);
+    assert.doesNotMatch(src, /\(\?<[=!]/);
+    assert.doesNotMatch(src, /serviceWorker\.register/);
+  });
 });

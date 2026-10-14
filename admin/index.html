@@ -17,14 +17,24 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="/admin/app.css">
+<link rel="stylesheet" href="/admin/app.css?v=2">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <div id="live" class="sr" role="status" aria-live="polite"></div>
 <div id="app" class="app" aria-busy="true"></div>
 <noscript><p>This page needs JavaScript so you can post a video.</p></noscript>
-<script src="/admin/logic.js"></script>
-<script src="/admin/app.js"></script>
+<script>
+(function () {
+  if (!navigator.serviceWorker || !navigator.serviceWorker.getRegistrations) return;
+  navigator.serviceWorker.getRegistrations().then(function (regs) {
+    if (!regs.length) return;
+    var pending = regs.map(function (reg) { return reg.unregister(); });
+    Promise.all(pending).then(function () { location.reload(); });
+  }).catch(function () {});
+})();
+</script>
+<script src="/admin/logic.js?v=2"></script>
+<script src="/admin/app.js?v=2"></script>
 </body>
 </html>
