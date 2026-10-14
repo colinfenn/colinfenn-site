@@ -892,7 +892,7 @@ test("age is whole years and months with day and month borrow", () => {
 });
 
 test("admin pages bust caches and stay parseable on iOS 15 Safari", () => {
-  const version = "v=5";
+  const version = "v=6";
   const admin = fs.readFileSync(path.join(__dirname, "../admin/index.html"), "utf8");
   assert.match(admin, new RegExp("/admin/app\\.css\\?" + version));
   assert.match(admin, new RegExp("/admin/logic\\.js\\?" + version));
