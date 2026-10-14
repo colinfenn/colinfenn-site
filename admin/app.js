@@ -429,7 +429,7 @@
     if (L.tooBig(file.size)) {
       state.draft.file = null;
       state.draft.fileUrl = "";
-      state.error = L.friendlyError({ message: "too-big" });
+      state.error = L.oversizeMessage(file.size);
       render();
       const box = $("#youtube");
       if (box) box.focus();
@@ -802,8 +802,6 @@
     if (video.type === "link") return '<span class="film" aria-hidden="true"></span>';
     const id = L.youtubeId(video.url);
     if (id && video.type !== "mp4") return '<img alt="" src="https://i.ytimg.com/vi/' + L.esc(id) + '/hqdefault.jpg">';
-    const src = state.localMedia.get(video.url) || video.url;
-    if (src) return '<video muted playsinline preload="metadata" src="' + L.esc(src) + '#t=0.5"></video>';
     return '<span class="film" aria-hidden="true"></span>';
   }
 
@@ -821,7 +819,7 @@
       '<input id="cam" class="sr" type="file" accept="video/*" capture="environment" aria-label="Record a video">' +
       '<label class="field" for="youtube">Or paste a YouTube or GameChanger link<input id="youtube" type="text" inputmode="url" autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off" placeholder="https://youtu.be/…" value="' + L.esc(draft.youtube) + '"></label>' +
       (draft.file && draft.youtube.trim() ? '<p class="fine">The phone video is the one that will post. Clear it to use the YouTube link.</p>' : "") +
-      '<p class="fine">Videos over 50 MB need a YouTube link. Unlisted is fine. Wi-Fi is easier than cell data.</p>',
+      '<p class="fine">Videos over 35 MB need a YouTube link. Unlisted is fine. Wi-Fi is easier than cell data.</p>',
       dock("Next", "next"));
   }
 
@@ -1003,7 +1001,9 @@
   }
 
   app.addEventListener("click", event => {
-    const control = event.target.closest("[data-action]");
+    const raw = event.target;
+    const node = raw && raw.nodeType === 1 ? raw : raw && raw.parentElement;
+    const control = node && node.closest ? node.closest("[data-action]") : null;
     if (!control) return;
     const action = control.dataset.action;
     if (state.busy && action !== "cancel") return;

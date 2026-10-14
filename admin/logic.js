@@ -15,7 +15,7 @@
   const TAG_LABELS = {};
   const MAX_CUSTOM_TAG = 30;
   const MAX_CUSTOM_TAGS = 10;
-  const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
+  const MAX_VIDEO_BYTES = 35 * 1024 * 1024;
   const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   const SHORT_MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -164,6 +164,13 @@
 
   function tooBig(bytes) {
     return Number(bytes) > MAX_VIDEO_BYTES;
+  }
+
+  function oversizeMessage(bytes) {
+    const mb = Number(bytes) / (1024 * 1024);
+    const rounded = Math.round(mb * 10) / 10;
+    const label = (rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1)) + " MB";
+    return "This clip is " + label + ". Trim it under 35 MB in Photos, or use a YouTube link.";
   }
 
   function formatBytes(bytes) {
@@ -414,7 +421,8 @@
     if (message === "closed") return "Login was closed before it finished. Tap Log in again.";
     if (message === "denied") return "GitHub didn't finish the login. Try again.";
     if (message === "aborted") return "Canceled. Nothing was saved.";
-    if (message === "too-big") return "That video is over 50 MB, so it can't go straight on the site. Upload it to YouTube (unlisted is fine), then paste the link here.";
+    if (message === "too-big") return "This clip is too big. Trim it under 35 MB in Photos, or use a YouTube link.";
+    if (/too large/i.test(message)) return "This clip is too big. Trim it under 35 MB in Photos, or use a YouTube link.";
     if (status === 401) return "Please log in again.";
     if (status === 403 || status === 404) return "GitHub didn't allow that save. Ask JT to check that your GitHub login can edit the site.";
     if (err && err.conflict) return "That didn't save because the list changed. Tap the button again.";
@@ -656,6 +664,7 @@
     youtubeId,
     isWebLink,
     tooBig,
+    oversizeMessage,
     formatBytes,
     esc,
     buildEntry,
