@@ -871,8 +871,28 @@ test("pitch history expands newest first and draws a trend after two readings", 
   assert.match(uploader, /You can pick more than one/);
 });
 
+test("age is whole years and months with day and month borrow", () => {
+  const birth = "2011-06-09";
+  assert.deepEqual(L.ageParts(birth, "2026-10-13"), { years: 15, months: 4 });
+  assert.equal(L.ageLabel(birth, "2026-10-13"), "15 yrs 4 mos");
+  assert.deepEqual(L.ageParts(birth, "2026-06-08"), { years: 14, months: 11 });
+  assert.equal(L.ageLabel(birth, "2026-06-08"), "14 yrs 11 mos");
+  assert.deepEqual(L.ageParts(birth, "2026-06-09"), { years: 15, months: 0 });
+  assert.equal(L.ageLabel(birth, "2026-06-09"), "15 yrs 0 mos");
+  assert.equal(L.ageLabel(birth, "2026-07-09"), "15 yrs 1 mo");
+  assert.equal(L.ageLabel(birth, "2012-06-09"), "1 yr 0 mos");
+  assert.equal(L.ageLabel(birth, "2012-07-09"), "1 yr 1 mo");
+  assert.equal(L.ageLabel("2011-02-31", "2026-10-13"), "");
+  const profile = JSON.parse(fs.readFileSync(path.join(__dirname, "../data/profile.json"), "utf8"));
+  assert.equal(profile.birthDate, "2011-06-09");
+  const home = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
+  assert.match(home, /<span>Age<\/span>[\s\S]*<span>Height<\/span>[\s\S]*<span>Weight<\/span>[\s\S]*<span>GPA<\/span>[\s\S]*<span>B\/T<\/span>/);
+  assert.match(app, /\["Age", L\.ageLabel\(p\.birthDate, new Date\(\)\)\], \["Height"/);
+});
+
 test("admin pages bust caches and stay parseable on iOS 15 Safari", () => {
-  const version = "v=4";
+  const version = "v=5";
   const admin = fs.readFileSync(path.join(__dirname, "../admin/index.html"), "utf8");
   assert.match(admin, new RegExp("/admin/app\\.css\\?" + version));
   assert.match(admin, new RegExp("/admin/logic\\.js\\?" + version));
@@ -882,6 +902,8 @@ test("admin pages bust caches and stay parseable on iOS 15 Safari", () => {
   const home = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.match(home, new RegExp("admin/logic\\.js\\?" + version));
   assert.match(home, new RegExp("js/app\\.js\\?" + version));
+  assert.match(home, new RegExp("css/style\\.css\\?" + version));
+  assert.match(home, new RegExp("css/theme\\.css\\?" + version));
   const advanced = fs.readFileSync(path.join(__dirname, "../admin/advanced/index.html"), "utf8");
   assert.match(advanced, new RegExp("/admin/advanced/admin\\.css\\?" + version));
   assert.match(advanced, new RegExp("/admin/advanced/admin\\.js\\?" + version));

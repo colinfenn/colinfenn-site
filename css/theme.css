@@ -14,7 +14,7 @@ h1,h2,h3,.brand,.eyebrow,.btn,.glance-list b,.metric .v,.cards dd,.email,.tabs b
 h1{font-size:clamp(3.6rem,13vw,7rem);font-weight:800;letter-spacing:.01em;line-height:.88}
 .id-line{font-family:var(--disp);font-size:clamp(1rem,7.1cqi,2.8rem);line-height:1.15;text-transform:none;letter-spacing:.01em;font-weight:800;margin:0;white-space:nowrap;text-align:center}
 p.id-line{margin-top:.28em}
-.keynums b{font-family:var(--disp);font-size:clamp(1.8rem,6vw,2.6rem);font-weight:800}
+.keynums b{font-family:var(--disp);font-size:clamp(1.35rem,5.4vw,2.4rem);font-weight:800;line-height:.92}
 .pitch-name,.fresh-nums b{font-family:var(--disp)}
 .filters button[aria-pressed=true]{background:var(--navy);color:#fff;box-shadow:none;border-radius:999px;padding:6px 12px}
 .eyebrow{font-size:1.15rem;letter-spacing:.22em;color:var(--gold)}

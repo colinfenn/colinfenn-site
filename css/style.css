@@ -53,9 +53,11 @@ h3{margin:32px 0 12px;text-transform:uppercase;font-size:1rem;letter-spacing:.1e
 .vmedia iframe,.vmedia video,.vmedia img,.vmedia .play{width:100%;height:100%;border:0;display:block}
 .vmedia img{object-fit:cover}
 .vmedia .play{padding:0;background:none;cursor:pointer}
-.keynums{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:18px 0 0;padding:16px 0 0;border-top:1px solid rgba(255,255,255,.16)}
-.keynums b{display:block;font-size:clamp(1.35rem,5vw,1.8rem);line-height:1}
-.keynums span{display:block;margin-top:4px;font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:#9fb0c9}
+.keynums{list-style:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;margin:18px 0 0;padding:16px 0 0;border-top:1px solid rgba(255,255,255,.16);text-align:center}
+.keynums li{min-width:0;display:flex;flex-direction:column;align-items:center}
+.keynums b{display:block;max-width:100%;font-size:clamp(1.35rem,5.4vw,2.4rem);line-height:.92;white-space:nowrap}
+.keynums li>span{display:block;max-width:100%;margin-top:auto;padding-top:4px;font-size:.58rem;letter-spacing:.02em;text-transform:uppercase;color:#9fb0c9;white-space:nowrap}
+.keynums .age-rest{display:block;margin:0;padding:0;font-size:inherit;letter-spacing:0;text-transform:none;color:inherit;white-space:nowrap}
 .hero-text{container-type:inline-size;width:100%}
 .id-line{font-size:clamp(1rem,7.1cqi,2.15rem);line-height:1.25;font-weight:800;margin:0;text-transform:none;letter-spacing:0;white-space:nowrap;text-align:center}
 p.id-line{margin-top:.28em}

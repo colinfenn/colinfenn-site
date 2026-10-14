@@ -152,6 +152,43 @@
     return MONTHS[date.getMonth()] + " " + date.getDate() + ", " + date.getFullYear();
   }
 
+  function calendarParts(value) {
+    if (value instanceof Date) {
+      if (isNaN(value.getTime())) return null;
+      return { y: value.getFullYear(), m: value.getMonth() + 1, d: value.getDate() };
+    }
+    const parts = String(value || "").split("-").map(Number);
+    if (parts.length !== 3 || parts.some(n => !n)) return null;
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    if (date.getFullYear() !== parts[0] || date.getMonth() !== parts[1] - 1 || date.getDate() !== parts[2]) return null;
+    return { y: parts[0], m: parts[1], d: parts[2] };
+  }
+
+  function ageParts(birthDate, today) {
+    const birth = calendarParts(birthDate);
+    const now = calendarParts(today == null ? new Date() : today);
+    if (!birth || !now) return null;
+    let years = now.y - birth.y;
+    let months = now.m - birth.m;
+    if (now.d < birth.d) months -= 1;
+    if (months < 0) {
+      years -= 1;
+      months += 12;
+    }
+    if (years < 0) return null;
+    return { years: years, months: months };
+  }
+
+  function ageUnit(count, singular, plural) {
+    return count + " " + (count === 1 ? singular : plural);
+  }
+
+  function ageLabel(birthDate, today) {
+    const parts = ageParts(birthDate, today);
+    if (!parts) return "";
+    return ageUnit(parts.years, "yr", "yrs") + " " + ageUnit(parts.months, "mo", "mos");
+  }
+
   function stamp(date) {
     const d = date || new Date();
     return d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) + "-" + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds());
@@ -714,6 +751,8 @@
     profileWithReel,
     todayISO,
     formatISODate,
+    ageParts,
+    ageLabel,
     stamp,
     slug,
     extensionFor,

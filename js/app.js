@@ -76,8 +76,13 @@
     }
     const gpa = p.academics && p.academics.gpa;
     const bt = !isPh(p.bats) && !isPh(p.throws) ? p.bats + "/" + p.throws : "";
-    const facts = [["Height", p.height], ["Weight", weightLabel(p.weight) || p.weight], ["GPA", gpa], ["B/T", bt]];
-    $("#keynums").innerHTML = facts.map(([k, v]) => `<li><b>${isPh(v) ? "—" : esc(v)}</b><span>${esc(k)}</span></li>`).join("");
+    const facts = [["Age", L.ageLabel(p.birthDate, new Date())], ["Height", p.height], ["Weight", weightLabel(p.weight) || p.weight], ["GPA", gpa], ["B/T", bt]];
+    $("#keynums").innerHTML = facts.map(([k, v]) => {
+      const shown = isPh(v) ? "—" : String(v);
+      const age = shown.match(/^(\d+ yrs?) (\d+ mos?)$/);
+      const value = age ? esc(age[1]) + ' <span class="age-rest">' + esc(age[2]) + "</span>" : esc(shown);
+      return `<li><b>${value}</b><span>${esc(k)}</span></li>`;
+    }).join("");
     const hon = p.honors || [];
     const list = $("#honors-list");
     if (list) {
