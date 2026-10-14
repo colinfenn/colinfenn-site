@@ -887,8 +887,8 @@ test("age is whole years and months with day and month borrow", () => {
   assert.equal(profile.birthDate, "2011-06-09");
   const home = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
-  assert.match(home, /<span>Age<\/span>[\s\S]*<span>Height<\/span>[\s\S]*<span>Weight<\/span>[\s\S]*<span>GPA<\/span>[\s\S]*<span>B\/T<\/span>/);
-  assert.match(app, /\["Age", L\.ageLabel\(p\.birthDate, new Date\(\)\)\], \["Height"/);
+  assert.match(home, /<span>Height<\/span>[\s\S]*<span>Weight<\/span>[\s\S]*<span>GPA<\/span>[\s\S]*<span>B\/T<\/span>[\s\S]*<span>Age<\/span>/);
+  assert.match(app, /\["Height", p\.height\], \["Weight", weightLabel\(p\.weight\) \|\| p\.weight\], \["GPA", gpa\], \["B\/T", bt\], \["Age", L\.ageLabel\(p\.birthDate, new Date\(\)\)\]/);
 });
 
 test("admin pages bust caches and stay parseable on iOS 15 Safari", () => {
