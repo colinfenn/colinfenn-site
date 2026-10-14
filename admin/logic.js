@@ -113,13 +113,26 @@
     return normalizeTags((Array.isArray(list) ? list : []).concat([text]));
   }
 
+  function shortDate(value) {
+    const formatted = formatISODate(value);
+    const source = formatted || String(value || "").trim();
+    const match = source.match(/^([A-Za-z]+)\s+(\d{1,2})(?:,\s*\d{4})?$/);
+    if (!match) return "";
+    const long = MONTHS.findIndex(name => name.toLowerCase() === match[1].toLowerCase());
+    const short = long >= 0 ? long : SHORT_MONTHS.findIndex(name => name.toLowerCase() === match[1].toLowerCase());
+    if (short < 0) return "";
+    return SHORT_MONTHS[short] + " " + Number(match[2]);
+  }
+
   function suggestedTitle(draft) {
     const categories = videoCategories(draft);
     const chosen = orderedTags(categories, draft && draft.tags).filter(tag =>
       tagsForCategories(categories).some(option => option.toLowerCase() === tag.toLowerCase())
     );
-    if (chosen.length) return chosen.join(" · ");
-    return categories[0] || "";
+    const head = chosen.length ? chosen.join(" · ") : (categories[0] || "");
+    const when = shortDate(draft && (draft.dateISO || draft.date || draft.dateLabel));
+    if (head && when) return head + " · " + when;
+    return head || when || "";
   }
 
   function pad(n) {
@@ -137,6 +150,43 @@
     const date = new Date(parts[0], parts[1] - 1, parts[2]);
     if (date.getFullYear() !== parts[0] || date.getMonth() !== parts[1] - 1 || date.getDate() !== parts[2]) return "";
     return MONTHS[date.getMonth()] + " " + date.getDate() + ", " + date.getFullYear();
+  }
+
+  function calendarParts(value) {
+    if (value instanceof Date) {
+      if (isNaN(value.getTime())) return null;
+      return { y: value.getFullYear(), m: value.getMonth() + 1, d: value.getDate() };
+    }
+    const parts = String(value || "").split("-").map(Number);
+    if (parts.length !== 3 || parts.some(n => !n)) return null;
+    const date = new Date(parts[0], parts[1] - 1, parts[2]);
+    if (date.getFullYear() !== parts[0] || date.getMonth() !== parts[1] - 1 || date.getDate() !== parts[2]) return null;
+    return { y: parts[0], m: parts[1], d: parts[2] };
+  }
+
+  function ageParts(birthDate, today) {
+    const birth = calendarParts(birthDate);
+    const now = calendarParts(today == null ? new Date() : today);
+    if (!birth || !now) return null;
+    let years = now.y - birth.y;
+    let months = now.m - birth.m;
+    if (now.d < birth.d) months -= 1;
+    if (months < 0) {
+      years -= 1;
+      months += 12;
+    }
+    if (years < 0) return null;
+    return { years: years, months: months };
+  }
+
+  function ageUnit(count, singular, plural) {
+    return count + " " + (count === 1 ? singular : plural);
+  }
+
+  function ageLabel(birthDate, today) {
+    const parts = ageParts(birthDate, today);
+    if (!parts) return "";
+    return ageUnit(parts.years, "yr", "yrs") + " " + ageUnit(parts.months, "mo", "mos");
   }
 
   function stamp(date) {
@@ -229,7 +279,7 @@
 
   function buildEntry(draft) {
     const entry = {
-      title: String(draft.title || "").trim(),
+      title: String(draft.title || "").trim() || suggestedTitle(draft),
       type: draft.type,
       url: String(draft.url || "").trim()
     };
@@ -402,7 +452,7 @@
         ok: true,
         data: next,
         json: serializeVideos(next),
-        message: "Post video: " + action.entry.title,
+        message: "Post video: " + (suggestedTitle(action.entry) || action.entry.title),
         removePaths: [],
         removedUrl: ""
       };
@@ -421,7 +471,7 @@
         ok: true,
         data: next,
         json: serializeVideos(next),
-        message: "Remove video: " + (removed.title || "Untitled"),
+        message: "Remove video: " + (suggestedTitle(removed) || removed.title || "Untitled"),
         removePaths: removePaths,
         removedUrl: removed.url || ""
       };
@@ -435,7 +485,7 @@
         ok: true,
         data: next,
         json: serializeVideos(next),
-        message: "Update video: " + action.entry.title,
+        message: "Update video: " + (suggestedTitle(action.entry) || action.entry.title),
         removePaths: [],
         removedUrl: ""
       };
@@ -652,18 +702,19 @@
   }
 
   function mediaHtml(video) {
+    const label = suggestedTitle(video) || "Video";
     if (video.type === "link" && isWebLink(video.url)) {
       return '<a class="play link" href="' + esc(video.url) + '" target="_blank" rel="noopener noreferrer">Open clip</a>';
     }
     const id = youtubeId(video.url);
     if (id && video.type !== "mp4") {
-      return '<button type="button" class="play" data-play="youtube" data-id="' + esc(id) + '"><img alt="' + esc(video.title || "Video") + '" src="https://i.ytimg.com/vi/' + esc(id) + '/hqdefault.jpg"></button>';
+      return '<button type="button" class="play" data-play="youtube" data-id="' + esc(id) + '"><img alt="' + esc(label) + '" src="https://i.ytimg.com/vi/' + esc(id) + '/hqdefault.jpg"></button>';
     }
     if (video.thumbnail && video.url && video.type !== "placeholder") {
-      return '<button type="button" class="play" data-play="file" data-src="' + esc(video.url) + '"><img alt="' + esc(video.title || "Video") + '" src="' + esc(video.thumbnail) + '"></button>';
+      return '<button type="button" class="play" data-play="file" data-src="' + esc(video.url) + '"><img alt="' + esc(label) + '" src="' + esc(video.thumbnail) + '"></button>';
     }
     if (video.url && video.type !== "placeholder") {
-      return '<video controls preload="metadata" playsinline src="' + esc(video.url) + '#t=0.5"></video>';
+      return '<video controls preload="metadata" playsinline aria-label="' + esc(label) + '" src="' + esc(video.url) + '#t=0.5"></video>';
     }
     return "<span>▶ Video coming soon</span>";
   }
@@ -700,6 +751,8 @@
     profileWithReel,
     todayISO,
     formatISODate,
+    ageParts,
+    ageLabel,
     stamp,
     slug,
     extensionFor,
