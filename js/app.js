@@ -146,6 +146,7 @@
         const key = String(tag).toLowerCase();
         if (!key) return;
         if (preset.some(item => item.toLowerCase() === key)) return;
+        if (L.isPresetTag(tag)) return;
         if (extra.some(item => item.toLowerCase() === key)) return;
         extra.push(tag);
       });
@@ -166,11 +167,11 @@
     const tabs = $("#vtabs");
     const render = () => {
       tabs.innerHTML = cats.map(c => {
-        const n = vids.filter(v => v.category === c && L.isReal(v)).length;
+        const n = vids.filter(v => L.inCategory(v, c) && L.isReal(v)).length;
         const label = esc(c).replace("/", "/<wbr>");
         return `<button type="button" role="tab" data-cat="${esc(c)}" aria-selected="${c === cat}" tabindex="${c === cat ? 0 : -1}">${label}${n ? `<small>${n}</small>` : ""}</button>`;
       }).join("");
-      const inCat = vids.filter(v => v.category === cat);
+      const inCat = vids.filter(v => L.inCategory(v, cat));
       const options = filterChoices(cat, inCat);
       $("#filters").innerHTML = options.map(tag => {
         const on = selected.some(item => item.toLowerCase() === tag.toLowerCase());

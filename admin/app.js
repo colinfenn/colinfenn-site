@@ -133,6 +133,7 @@
       fileUrl: "",
       youtube: "",
       category: "",
+      categories: [],
       tags: [],
       tagText: "",
       velo: "",
@@ -382,7 +383,7 @@
       const problem = videoProblem();
       if (problem) return setError(problem);
     }
-    if (state.step === "category" && !state.draft.category) return setError("Pick a category.");
+    if (state.step === "category" && !L.videoCategories(state.draft).length) return setError("Pick a category.");
     if (state.step === "details") {
       syncTitle();
       if (!String(state.draft.title || "").trim()) return setError("Add a title.");
@@ -459,6 +460,7 @@
         type: draft.type,
         url: draft.url,
         category: draft.category,
+        categories: draft.categories,
         tags: draft.tags,
         velo: draft.velo,
         thumbnail: draft.thumbnail,
@@ -474,6 +476,7 @@
       type: useFile ? "mp4" : pastedLinkType(link),
       url: useFile ? draft.url : link,
       category: draft.category,
+      categories: draft.categories,
       tags: draft.tags,
       velo: draft.velo,
       thumbnail: draft.thumbnail,
@@ -593,7 +596,7 @@
     syncTitle();
     const problem = videoProblem();
     if (problem) return setError(problem);
-    if (!state.draft.category) return setError("Pick a category.");
+    if (!L.videoCategories(state.draft).length) return setError("Pick a category.");
     if (!String(state.draft.title || "").trim()) return setError("Add a title.");
     const entry = entryForSave();
     if (state.draft.file) entry.url = "/media/videos/pending.mp4";
@@ -627,10 +630,11 @@
       file: null,
       fileUrl: "",
       youtube: "",
-      category: video.category || "",
-      tags: L.orderedTags(video.category, video.tags),
+      category: L.videoCategories(video)[0] || "",
+      categories: L.videoCategories(video),
+      tags: L.orderedTags(L.videoCategories(video), video.tags),
       tagText: "",
-      velo: video.category === "Pitching" ? (video.velo || "") : "",
+      velo: L.videoCategories(video).indexOf("Pitching") >= 0 ? (video.velo || "") : "",
       thumbnail: video.thumbnail || "",
       posterBlob: null,
       posterUrl: "",
@@ -678,7 +682,7 @@
   }
 
   function customOnly(tags) {
-    const preset = new Set(L.tagsFor(state.draft.category).map(tag => tag.toLowerCase()));
+    const preset = new Set(L.tagsForCategories(state.draft.categories).map(tag => tag.toLowerCase()));
     return (tags || []).filter(tag => !preset.has(String(tag).toLowerCase()));
   }
 
@@ -702,14 +706,14 @@
   }
 
   function tagFields() {
-    const tags = L.tagsFor(state.draft.category);
+    const tags = L.tagsForCategories(state.draft.categories);
     if (!tags.length) return "";
     return chips("tags", "Tags", tags, state.draft.tags || []);
   }
 
   function extraFields() {
     const draft = state.draft;
-    const velo = draft.category === "Pitching"
+    const velo = L.videoCategories(draft).indexOf("Pitching") >= 0
       ? '<label class="field" for="velo">Speed <span class="optional">optional</span><input id="velo" type="text" maxlength="40" autocomplete="off" placeholder="75 mph" value="' + L.esc(draft.velo) + '"></label>'
       : "";
     return velo +
@@ -786,7 +790,7 @@
   function rowHtml(video) {
     const key = L.esc(L.videoKey(video));
     const featured = video.featured ? '<p class="reel-flag">At the top of your site</p>' : "";
-    return '<article class="row"><div class="thumb">' + thumbHtml(video) + '</div><div class="row-copy"><h2>' + L.esc(video.title || "Video") + "</h2><p>" + L.esc(video.category || "") + "</p>" + featured + (video.caption ? "<p class=\"cap\">" + L.esc(video.caption) + "</p>" : "") + '</div><div class="row-actions"><button type="button" data-action="edit" data-key="' + key + '">Edit</button><button type="button" class="danger" data-action="ask-delete" data-key="' + key + '">Delete</button></div></article>';
+    return '<article class="row"><div class="thumb">' + thumbHtml(video) + '</div><div class="row-copy"><h2>' + L.esc(video.title || "Video") + "</h2><p>" + L.esc(L.videoCategories(video).join(", ")) + "</p>" + featured + (video.caption ? "<p class=\"cap\">" + L.esc(video.caption) + "</p>" : "") + '</div><div class="row-actions"><button type="button" data-action="edit" data-key="' + key + '">Edit</button><button type="button" class="danger" data-action="ask-delete" data-key="' + key + '">Delete</button></div></article>';
   }
 
   function blankHtml(video) {
@@ -825,7 +829,9 @@
 
   function categoryStep() {
     return shell("What kind?",
-      clipHtml() + chips("category", "Category", L.CATEGORIES, state.draft.category),
+      clipHtml() +
+      '<p class="lead">Pick every tab this clip belongs on. You can choose more than one.</p>' +
+      chips("category", "Categories", L.CATEGORIES, state.draft.categories),
       dock("Next", "next"));
   }
 
@@ -839,7 +845,7 @@
   }
 
   function detailsStep() {
-    const hint = L.CAPTION_HINTS[state.draft.category] || "What happened in the clip.";
+    const hint = L.CAPTION_HINTS[L.videoCategories(state.draft)[0]] || "What happened in the clip.";
     const suggest = state.draft.titleDirty ? '<button type="button" class="text-btn" data-action="suggest">Fill in a title from my picks</button>' : '<p class="fine">Filled in from what you tapped. You can change it.</p>';
     return shell("Details",
       '<label class="field" for="title">Title<input id="title" type="text" maxlength="120" autocomplete="off" value="' + L.esc(state.draft.title) + '"></label>' +
@@ -859,13 +865,14 @@
   }
 
   function editScreen() {
-    const hint = L.CAPTION_HINTS[state.draft.category] || "What happened in the clip.";
+    const hint = L.CAPTION_HINTS[L.videoCategories(state.draft)[0]] || "What happened in the clip.";
     const tags = tagFields();
     return shell("Edit video",
       clipHtml() +
       '<label class="field" for="title">Title<input id="title" type="text" maxlength="120" autocomplete="off" value="' + L.esc(state.draft.title) + '"></label>' +
       '<button type="button" class="text-btn" data-action="suggest">Fill in a title from my picks</button>' +
-      chips("category", "Category", L.CATEGORIES, state.draft.category) +
+      '<p class="lead">Pick every tab this clip belongs on.</p>' +
+      chips("category", "Categories", L.CATEGORIES, state.draft.categories) +
       (tags || "") + customTagHtml() +
       '<label class="field" for="caption">Caption<textarea id="caption" rows="3" placeholder="' + L.esc(hint) + '">' + L.esc(state.draft.caption) + "</textarea></label>" +
       '<p class="fine">Example: ' + L.esc(hint) + "</p>" +
@@ -910,6 +917,7 @@
       type: useFile ? "mp4" : pastedLinkType(link),
       url: useFile ? draft.fileUrl : link,
       category: draft.category,
+      categories: draft.categories,
       tags: draft.tags,
       velo: draft.velo,
       thumbnail: draft.posterUrl || draft.thumbnail,
@@ -1029,11 +1037,16 @@
       const group = control.dataset.group;
       const value = control.dataset.value;
       if (group === "category") {
-        state.draft.category = value;
-        const allowed = new Set(L.tagsFor(value).map(tag => tag.toLowerCase()));
+        const chosen = (state.draft.categories || []).slice();
+        const index = chosen.indexOf(value);
+        if (index >= 0) chosen.splice(index, 1);
+        else chosen.push(value);
+        state.draft.categories = L.normalizeCategories(chosen);
+        state.draft.category = state.draft.categories[0] || "";
+        const allowed = new Set(L.tagsForCategories(state.draft.categories).map(tag => tag.toLowerCase()));
         const anyPreset = new Set(L.CATEGORIES.flatMap(category => L.tagsFor(category)).map(tag => tag.toLowerCase()));
         state.draft.tags = (state.draft.tags || []).filter(tag => allowed.has(tag.toLowerCase()) || !anyPreset.has(tag.toLowerCase()));
-        if (value !== "Pitching") state.draft.velo = "";
+        if (state.draft.categories.indexOf("Pitching") < 0) state.draft.velo = "";
       } else if (group === "tags") {
         const tags = (state.draft.tags || []).slice();
         const index = tags.findIndex(tag => tag.toLowerCase() === value.toLowerCase());

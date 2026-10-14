@@ -86,11 +86,31 @@
     return out;
   }
 
+  function normalizeCategories(list, fallback) {
+    var source = [];
+    if (Object.prototype.toString.call(list) === '[object Array]') source = list;
+    else if (text(list)) source = [list];
+    if (!source.length && text(fallback)) source = [fallback];
+    var out = [];
+    var seen = {};
+    CATEGORIES.forEach(function (category) {
+      source.forEach(function (item) {
+        var name = normalizeCategory(item);
+        if (name === category && !seen[name]) {
+          seen[name] = true;
+          out.push(name);
+        }
+      });
+    });
+    return out;
+  }
+
   function diskVideo(v) {
     v = v || {};
     var url = pickVideoUrl(v.file, v.youtube);
     if (!url && v.url) url = text(v.url);
-    var category = normalizeCategory(v.category);
+    var categories = normalizeCategories(v.categories, v.category);
+    var category = categories[0] || normalizeCategory(v.category);
     var item = {
       title: v.title || '',
       type: inferType(url),
@@ -99,11 +119,12 @@
     if (text(v.thumbnail)) item.thumbnail = text(v.thumbnail);
     var tags = tagList(v);
     if (tags.length) item.tags = tags;
-    if (category === 'Pitching' && text(v.velo)) item.velo = text(v.velo);
+    if (categories.indexOf('Pitching') >= 0 && text(v.velo)) item.velo = text(v.velo);
     if (v.featured === true || v.featured === 'true') item.featured = true;
     item.date = v.date || '';
     item.caption = v.caption || '';
     item.category = category;
+    if (categories.length) item.categories = categories;
     return item;
   }
 
@@ -111,15 +132,15 @@
     v = v || {};
     var url = text(v.url);
     var isFile = VIDEO_EXT.test(url);
-    var category = normalizeCategory(v.category);
+    var categories = normalizeCategories(v.categories, v.category);
     return {
       title: v.title || '',
-      category: category,
+      categories: categories,
       youtube: isFile ? '' : url,
       file: isFile ? url : '',
       thumbnail: v.thumbnail || '',
       tags: tagList(v),
-      velo: category === 'Pitching' ? (v.velo || '') : '',
+      velo: categories.indexOf('Pitching') >= 0 ? (v.velo || '') : '',
       featured: !!v.featured,
       date: v.date || '',
       caption: v.caption || ''
@@ -135,7 +156,9 @@
 
   function videosToFile(data) {
     var videos = ((data && data.videos) || []).filter(function (v) {
-      return text(v && v.category) !== 'Game Highlights' || text(v && v.url);
+      var label = text(v && v.category);
+      if (!label && v && Object.prototype.toString.call(v.categories) === '[object Array]' && v.categories.length === 1) label = text(v.categories[0]);
+      return label !== 'Game Highlights' || text(v && v.url);
     }).map(diskVideo);
     var out = {
       categories: CATEGORIES.slice(),

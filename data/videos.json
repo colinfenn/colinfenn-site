@@ -19,7 +19,11 @@
       ],
       "date": "October 13, 2026",
       "caption": "Mix of sinker, slider, changeup, and curveball",
-      "category": "Pitching"
+      "category": "Pitching",
+      "categories": [
+        "Pitching",
+        "Training/Workouts"
+      ]
     },
     {
       "title": "K swinging vs Windsor righty",
@@ -33,7 +37,10 @@
       ],
       "date": "October 13, 2026",
       "caption": "Came inside with slider, then outside with sinker",
-      "category": "Pitching"
+      "category": "Pitching",
+      "categories": [
+        "Pitching"
+      ]
     },
     {
       "title": "Got the 3 hitter swinging",
@@ -47,7 +54,10 @@
       "date": "October 13, 2026",
       "caption": "Struck out the side, Top 1st, Casa Grande @ SM",
       "category": "Pitching",
-      "thumbnail": "/media/videos/got-the-3-hitter-swinging-20261013-124941.jpg"
+      "thumbnail": "/media/videos/got-the-3-hitter-swinging-20261013-124941.jpg",
+      "categories": [
+        "Pitching"
+      ]
     },
     {
       "title": "K swinging vs Casa Grande @ SM",
@@ -61,7 +71,10 @@
       "thumbnail": "/media/videos/slider-k-game-20261013-124104.jpg",
       "date": "October 13, 2026",
       "caption": "Struck out Casa Grande’s lefty leadoff hitter with a slider",
-      "category": "Pitching"
+      "category": "Pitching",
+      "categories": [
+        "Pitching"
+      ]
     },
     {
       "title": "Line drive single",
@@ -73,7 +86,10 @@
       "thumbnail": "/media/videos/single-20261012-214250.jpg",
       "date": "October 12, 2026",
       "caption": "Single to RF vs 17u pitcher",
-      "category": "Hitting"
+      "category": "Hitting",
+      "categories": [
+        "Hitting"
+      ]
     },
     {
       "title": "Got the K swinging vs lefty hitter",
@@ -87,7 +103,10 @@
       "thumbnail": "/media/videos/curveball-game-20261012-204654.jpg",
       "date": "October 12, 2026",
       "caption": "Finished him with my slider",
-      "category": "Pitching"
+      "category": "Pitching",
+      "categories": [
+        "Pitching"
+      ]
     },
     {
       "title": "K looking vs 17u hitter",
@@ -101,7 +120,10 @@
       "thumbnail": "/media/videos/pitching-20261012-195823.jpg",
       "date": "October 12, 2026",
       "caption": "Caught him looking with a slider on the outside corner",
-      "category": "Pitching"
+      "category": "Pitching",
+      "categories": [
+        "Pitching"
+      ]
     }
   ]
 }
