@@ -2,6 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
+const vm = require("vm");
 const L = require("../admin/logic.js");
 
 const base = {
@@ -118,9 +119,25 @@ test("delete removes a repo video and leaves YouTube files alone", () => {
 });
 
 test("oversized files and bad links get plain-language blocks", () => {
+  assert.equal(L.MAX_VIDEO_BYTES, 35 * 1024 * 1024);
   assert.equal(L.tooBig(L.MAX_VIDEO_BYTES), false);
   assert.equal(L.tooBig(L.MAX_VIDEO_BYTES + 1), true);
-  assert.equal(L.friendlyError({ message: "too-big" }).includes("YouTube"), true);
+  assert.equal(L.tooBig(50 * 1024 * 1024), true);
+  const big = Math.round(44.7 * 1024 * 1024);
+  assert.equal(L.oversizeMessage(big), "This clip is 44.7 MB. Trim it under 35 MB in Photos, or use a YouTube link.");
+  assert.equal(L.oversizeMessage(35 * 1024 * 1024), "This clip is 35 MB. Trim it under 35 MB in Photos, or use a YouTube link.");
+  const uploader = fs.readFileSync(path.join(__dirname, "../admin/app.js"), "utf8");
+  const styles = fs.readFileSync(path.join(__dirname, "../admin/app.css"), "utf8");
+  assert.match(uploader, /state\.error = L\.oversizeMessage\(file\.size\)/);
+  assert.match(uploader, /Videos over 35 MB need a YouTube link/);
+  const thumb = uploader.slice(uploader.indexOf("function thumbHtml"), uploader.indexOf("function videoStep"));
+  assert.doesNotMatch(thumb, /<video/);
+  assert.match(thumb, /class="film"/);
+  assert.match(styles, /\.thumb \{[^}]*overflow:\s*hidden/);
+  assert.match(styles, /\.thumb video, \.thumb img, \.film \{[^}]*pointer-events:\s*none/s);
+  assert.match(L.friendlyError({ message: "too-big" }), /35 MB/);
+  assert.match(L.friendlyError({ status: 422, message: "input was too large" }), /Trim it under 35 MB/);
+  assert.doesNotMatch(L.friendlyError({ status: 422, message: "input was too large" }), /list changed/);
   assert.equal(L.friendlyError({ message: "popup" }).includes("pop-ups"), true);
   assert.equal(L.validateEntry({ title: "", type: "youtube", url: "https://vimeo.com/1", category: "Hitting" }), "Add a title.");
   const missing = L.buildEntry({ title: "Clip", type: "youtube", url: "https://vimeo.com/1", category: "Hitting", date: "October 12, 2026", caption: "" });
@@ -423,7 +440,7 @@ test("GitHub requests do not send Cache-Control or Pragma", () => {
 
 test("a GameChanger link saves onto a fresh list and retries a stale SHA", async () => {
   const existing = JSON.parse(fs.readFileSync(path.join(__dirname, "../data/videos.json"), "utf8"));
-  assert.equal(existing.videos.length, 5);
+  assert.ok(existing.videos.length >= 5);
   const entry = L.buildEntry({
     title: "Slider K GameChanger",
     type: "link",
@@ -460,7 +477,7 @@ test("a GameChanger link saves onto a fresh list and retries a stale SHA", async
   existing.videos.forEach(video => {
     assert.equal(plan.data.videos.filter(saved => saved.url === video.url).length, 1);
   });
-  assert.equal(JSON.parse(plan.json).videos.length, 6);
+  assert.equal(JSON.parse(plan.json).videos.length, existing.videos.length + 1);
 });
 
 test("a conflict retry does not post the clip twice when the first attempt landed", async () => {
@@ -511,6 +528,31 @@ test("three stale branch updates give up instead of looping", async () => {
   assert.equal(stub.state.patches, 3);
 });
 
+test("editing tags and caption goes through a fresh save", async () => {
+  const existing = JSON.parse(fs.readFileSync(path.join(__dirname, "../data/videos.json"), "utf8"));
+  const current = existing.videos[0];
+  const entry = L.buildEntry({
+    title: current.title,
+    type: current.type,
+    url: current.url,
+    category: current.category,
+    tags: ["Sinker", "K", "Game"],
+    date: current.date,
+    caption: "Updated caption",
+    thumbnail: current.thumbnail
+  });
+  const stub = gitHubStub(existing, { patchStatus: () => 0 });
+  const plan = await L.saveFresh(stub.request, { kind: "update", key: L.videoKey(current), entry }, {});
+  assert.equal(stub.state.patches, 1);
+  assert.equal(plan.data.videos[0].caption, "Updated caption");
+  assert.deepEqual(plan.data.videos[0].tags, ["Sinker", "K", "Game"]);
+  assert.equal(plan.data.videos[0].url, current.url);
+  assert.equal(plan.data.videos.length, existing.videos.length);
+  existing.videos.slice(1).forEach(video => {
+    assert.equal(plan.data.videos.filter(saved => saved.url === video.url).length, 1);
+  });
+});
+
 test("reading videos.json decodes GitHub's base64 content", async () => {
   const raw = fs.readFileSync(path.join(__dirname, "../data/videos.json"), "utf8");
   let requested = "";
@@ -529,6 +571,15 @@ test("reading videos.json decodes GitHub's base64 content", async () => {
     caption: video.caption,
     category: video.category
   })), [
+    {
+      title: "K swinging vs Windsor righty",
+      url: "/media/videos/k-swinging-vs-windsor-righty-20261013-144648.mov",
+      tags: ["Sinker", "Slider", "K", "Game"],
+      thumbnail: undefined,
+      date: "October 13, 2026",
+      caption: "Came inside with slider, then outside with sinker",
+      category: "Pitching"
+    },
     {
       title: "Got the 3 hitter swinging",
       url: "/media/videos/got-the-3-hitter-swinging-20261013-124941.mp4",
@@ -697,4 +748,39 @@ test("pitch history expands newest first and draws a trend after two readings", 
   assert.match(uploader, /canvas/);
   assert.match(uploader, /Videos coming soon/);
   assert.match(uploader, /You can pick more than one/);
+});
+
+test("admin pages bust caches and stay parseable on iOS 15 Safari", () => {
+  const version = "v=2";
+  const admin = fs.readFileSync(path.join(__dirname, "../admin/index.html"), "utf8");
+  assert.match(admin, new RegExp("/admin/app\\.css\\?" + version));
+  assert.match(admin, new RegExp("/admin/logic\\.js\\?" + version));
+  assert.match(admin, new RegExp("/admin/app\\.js\\?" + version));
+  assert.match(admin, /getRegistrations/);
+  assert.match(admin, /unregister/);
+  const home = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
+  assert.match(home, new RegExp("admin/logic\\.js\\?" + version));
+  const advanced = fs.readFileSync(path.join(__dirname, "../admin/advanced/index.html"), "utf8");
+  assert.match(advanced, new RegExp("/admin/advanced/admin\\.css\\?" + version));
+  assert.match(advanced, new RegExp("/admin/advanced/admin\\.js\\?" + version));
+
+  const toml = fs.readFileSync(path.join(__dirname, "../netlify.toml"), "utf8");
+  assert.match(toml, /for = "\/admin\/\*"[\s\S]*?Cache-Control = "no-cache"/);
+  assert.equal(fs.existsSync(path.join(__dirname, "../sw.js")), false);
+  assert.equal(fs.existsSync(path.join(__dirname, "../service-worker.js")), false);
+  const pages = [admin, home, advanced, fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8")];
+  pages.forEach(src => assert.doesNotMatch(src, /serviceWorker\.register/));
+
+  const inline = admin.match(/<script>([\s\S]*?)<\/script>/);
+  assert.ok(inline, "admin page includes the service-worker cleanup");
+  const scripts = ["admin/app.js", "admin/logic.js", "admin/advanced/admin.js"];
+  [inline[1]].concat(scripts.map(file => fs.readFileSync(path.join(__dirname, "..", file), "utf8"))).forEach((src, index) => {
+    const filename = index === 0 ? "admin/index.html" : scripts[index - 1];
+    new vm.Script(src, { filename: filename });
+    assert.doesNotMatch(src, /\?\?=|\|\|=|&&=|\?\.=/);
+    assert.doesNotMatch(src, /\.at\s*\(/);
+    assert.doesNotMatch(src, /structuredClone/);
+    assert.doesNotMatch(src, /\(\?<[=!]/);
+    assert.doesNotMatch(src, /serviceWorker\.register/);
+  });
 });
