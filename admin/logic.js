@@ -34,6 +34,42 @@
     return tagsFor(category).length > 0;
   }
 
+  function normalizeCategories(list) {
+    const source = Array.isArray(list) ? list : (list ? [list] : []);
+    const out = [];
+    CATEGORIES.forEach(category => {
+      if (source.some(item => String(item || "") === category)) out.push(category);
+    });
+    return out;
+  }
+
+  function videoCategories(video) {
+    if (!video) return [];
+    if (Array.isArray(video.categories) && video.categories.length) {
+      const normalized = normalizeCategories(video.categories);
+      if (normalized.length) return normalized;
+    }
+    return normalizeCategories(video.category ? [video.category] : []);
+  }
+
+  function inCategory(video, category) {
+    return videoCategories(video).indexOf(category) >= 0;
+  }
+
+  function tagsForCategories(categories) {
+    const out = [];
+    const seen = {};
+    videoCategories({ categories: categories }).forEach(category => {
+      tagsFor(category).forEach(tag => {
+        const key = tag.toLowerCase();
+        if (seen[key]) return;
+        seen[key] = true;
+        out.push(tag);
+      });
+    });
+    return out;
+  }
+
   function stepsFor() {
     return STEPS.slice();
   }
@@ -67,7 +103,7 @@
 
   function orderedTags(category, list) {
     const clean = normalizeTags(list);
-    const options = tagsFor(category);
+    const options = Array.isArray(category) ? tagsForCategories(category) : tagsFor(category);
     const preset = options.filter(option => clean.some(tag => tag.toLowerCase() === option.toLowerCase()));
     const custom = clean.filter(tag => !options.some(option => option.toLowerCase() === tag.toLowerCase()));
     return preset.concat(custom);
@@ -78,11 +114,12 @@
   }
 
   function suggestedTitle(draft) {
-    const chosen = orderedTags(draft && draft.category, draft && draft.tags).filter(tag =>
-      tagsFor(draft.category).some(option => option.toLowerCase() === tag.toLowerCase())
+    const categories = videoCategories(draft);
+    const chosen = orderedTags(categories, draft && draft.tags).filter(tag =>
+      tagsForCategories(categories).some(option => option.toLowerCase() === tag.toLowerCase())
     );
     if (chosen.length) return chosen.join(" · ");
-    return (draft && draft.category) || "";
+    return categories[0] || "";
   }
 
   function pad(n) {
@@ -196,27 +233,30 @@
       type: draft.type,
       url: String(draft.url || "").trim()
     };
-    const tags = orderedTags(draft.category, draft.tags);
+    const categories = videoCategories(draft);
+    const tags = orderedTags(categories, draft.tags);
     if (tags.length) entry.tags = tags;
     const velo = String(draft.velo || "").trim();
-    if (velo && draft.category === "Pitching") entry.velo = velo;
+    if (velo && categories.indexOf("Pitching") >= 0) entry.velo = velo;
     const thumbnail = String(draft.thumbnail || "").trim();
     if (thumbnail) entry.thumbnail = thumbnail;
     entry.date = draft.date || "";
     entry.caption = String(draft.caption || "").trim();
-    entry.category = draft.category;
+    entry.category = categories[0] || "";
+    if (categories.length) entry.categories = categories.slice();
     if (draft.featured) entry.featured = true;
     return entry;
   }
 
   function cardTags(video) {
-    const tags = orderedTags(video && video.category, video && video.tags);
-    const velo = video && video.category === "Pitching" ? String(video.velo || "").trim() : "";
+    const categories = videoCategories(video);
+    const tags = orderedTags(categories, video && video.tags);
+    const velo = categories.indexOf("Pitching") >= 0 ? String(video && video.velo || "").trim() : "";
     return velo ? tags.concat([velo]) : tags;
   }
 
   function filterTags(video) {
-    return orderedTags(video && video.category, video && video.tags);
+    return orderedTags(videoCategories(video), video && video.tags);
   }
 
   function matchesAllTags(video, selected) {
@@ -280,6 +320,7 @@
       video.type || "",
       video.url || "",
       video.category || "",
+      videoCategories(video).join("|"),
       video.caption || "",
       video.date || "",
       video.velo || "",
@@ -305,7 +346,7 @@
   }
 
   function validateEntry(entry) {
-    if (!CATEGORIES.includes(entry.category)) return "Pick a category.";
+    if (!videoCategories(entry).length) return "Pick a category.";
     if (!entry.title) return "Add a title.";
     if (entry.type === "youtube" && !youtubeId(entry.url)) return "That doesn't look like a YouTube link. Open the video and copy the address.";
     if (entry.type === "link" && !isWebLink(entry.url)) return "That doesn't look like a link. Open the video and copy the address.";
@@ -641,6 +682,11 @@
     MAX_VIDEO_BYTES,
     CAPTION_HINTS,
     tagsFor,
+    tagsForCategories,
+    normalizeCategories,
+    videoCategories,
+    inCategory,
+    isPresetTag,
     hasTags,
     stepsFor,
     suggestedTitle,

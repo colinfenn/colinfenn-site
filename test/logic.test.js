@@ -44,6 +44,58 @@ test("every category uses the same five steps, with its own tags", () => {
   for (const category of L.CATEGORIES) assert.equal(L.hasTags(category), true);
 });
 
+test("a clip can sit in more than one category", () => {
+  assert.deepEqual(L.tagsForCategories(["Training/Workouts", "Pitching"]), [
+    "Sinker", "Curveball", "Slider", "Cutter", "Changeup", "K", "Pickoff", "Game", "Bullpen", "Weights", "Speed/Agility"
+  ]);
+  const entry = L.buildEntry({
+    title: "Bullpen mix",
+    type: "mp4",
+    url: "/media/videos/bullpen.mp4",
+    categories: ["Training/Workouts", "Pitching"],
+    tags: ["Weights", "Sinker", "Bullpen", "Game"],
+    velo: "74 mph",
+    date: "October 13, 2026",
+    caption: "Both tabs"
+  });
+  assert.equal(entry.category, "Pitching");
+  assert.deepEqual(entry.categories, ["Pitching", "Training/Workouts"]);
+  assert.deepEqual(entry.tags, ["Sinker", "Game", "Bullpen", "Weights"]);
+  assert.equal(entry.velo, "74 mph");
+  assert.equal(L.inCategory(entry, "Pitching"), true);
+  assert.equal(L.inCategory(entry, "Training/Workouts"), true);
+  assert.equal(L.inCategory(entry, "Hitting"), false);
+  assert.equal(L.matchesAllTags(entry, ["Sinker", "Weights"]), true);
+  assert.equal(L.matchesAllTags(entry, ["Sinker", "Single"]), false);
+  const legacy = { title: "Old", type: "mp4", url: "/media/videos/old.mp4", category: "Hitting", tags: ["Single"], date: "October 12, 2026" };
+  assert.deepEqual(L.videoCategories(legacy), ["Hitting"]);
+  assert.equal(L.inCategory(legacy, "Hitting"), true);
+  assert.equal(L.validateEntry(legacy), "");
+  assert.equal(L.validateEntry({ title: "T", type: "youtube", url: "https://youtu.be/abcdefghijk", categories: [] }), "Pick a category.");
+  const listed = [entry, legacy];
+  assert.deepEqual(L.sortByDate(listed.filter(video => L.inCategory(video, "Pitching"))).map(video => video.title), ["Bullpen mix"]);
+  assert.deepEqual(listed.filter(video => L.inCategory(video, "Training/Workouts")).map(video => video.title), ["Bullpen mix"]);
+  assert.equal(L.suggestedTitle({ categories: ["Hitting", "Pitching"], tags: ["Single", "Sinker"] }), "Sinker · Single");
+  require("../admin/advanced/admin.js");
+  const raw = fs.readFileSync(path.join(__dirname, "../data/videos.json"), "utf8");
+  const editor = global.ColinAdmin.videosFromFile(raw);
+  assert.deepEqual(editor.videos[0].categories, ["Pitching", "Training/Workouts"]);
+  assert.equal(editor.videos[0].category, undefined);
+  const back = JSON.parse(global.ColinAdmin.videosToFile({ videos: editor.videos }));
+  assert.equal(back.videos.length, editor.videos.length);
+  assert.equal(back.videos[0].title, "Bullpen vs varsity batters");
+  assert.equal(back.videos[0].category, "Pitching");
+  assert.deepEqual(back.videos[0].categories, ["Pitching", "Training/Workouts"]);
+  assert.deepEqual(back.videos[4].categories, ["Hitting"]);
+  const fromCategory = global.ColinAdmin.videosFromFile(JSON.stringify({
+    videos: [{ title: "Old", url: "https://youtu.be/abcdefghijk", category: "Fielding", tags: ["Catch"] }]
+  }));
+  assert.deepEqual(fromCategory.videos[0].categories, ["Fielding"]);
+  const savedLegacy = JSON.parse(global.ColinAdmin.videosToFile(fromCategory));
+  assert.equal(savedLegacy.videos[0].category, "Fielding");
+  assert.deepEqual(savedLegacy.videos[0].categories, ["Fielding"]);
+});
+
 test("dates use the calendar day, not UTC shifting", () => {
   assert.equal(L.formatISODate("2026-10-12"), "October 12, 2026");
   assert.equal(L.formatISODate("2026-04-12"), "April 12, 2026");
@@ -63,7 +115,8 @@ test("a pitching post keeps the site's video shape and drops unused tags", () =>
     date: "October 12, 2026",
     caption: "First-pitch sinker, swing and miss."
   });
-  assert.deepEqual(Object.keys(entry), ["title", "type", "url", "tags", "velo", "thumbnail", "date", "caption", "category"]);
+  assert.deepEqual(Object.keys(entry), ["title", "type", "url", "tags", "velo", "thumbnail", "date", "caption", "category", "categories"]);
+  assert.deepEqual(entry.categories, ["Pitching"]);
   assert.deepEqual(entry.tags, ["Sinker", "Bullpen"]);
   assert.equal(entry.opponent, undefined);
   const saved = L.prepareSave(base, { kind: "add", entry });
@@ -203,6 +256,9 @@ test("optional pitching speed and one featured clip", () => {
 test("the public site matches every selected tag and sorts newest first", () => {
   const src = fs.readFileSync(path.join(__dirname, "../js/app.js"), "utf8");
   assert.match(src, /L\.matchesAllTags\(v, selected\)/);
+  assert.match(src, /L\.inCategory\(v, c\)/);
+  assert.match(src, /L\.inCategory\(v, cat\)/);
+  assert.match(src, /L\.isPresetTag\(tag\)/);
   assert.match(src, /L\.sortByDate\(/);
   assert.match(src, /Videos coming soon/);
   assert.match(src, /v\.featured && v\.url/);
@@ -536,6 +592,7 @@ test("editing tags and caption goes through a fresh save", async () => {
     type: current.type,
     url: current.url,
     category: current.category,
+    categories: current.categories,
     tags: ["Sinker", "K", "Game"],
     date: current.date,
     caption: "Updated caption",
@@ -547,6 +604,8 @@ test("editing tags and caption goes through a fresh save", async () => {
   assert.equal(plan.data.videos[0].caption, "Updated caption");
   assert.deepEqual(plan.data.videos[0].tags, ["Sinker", "K", "Game"]);
   assert.equal(plan.data.videos[0].url, current.url);
+  assert.deepEqual(plan.data.videos[0].categories, current.categories);
+  assert.equal(plan.data.videos[0].category, current.category);
   assert.equal(plan.data.videos.length, existing.videos.length);
   existing.videos.slice(1).forEach(video => {
     assert.equal(plan.data.videos.filter(saved => saved.url === video.url).length, 1);
@@ -569,8 +628,19 @@ test("reading videos.json decodes GitHub's base64 content", async () => {
     thumbnail: video.thumbnail,
     date: video.date,
     caption: video.caption,
-    category: video.category
+    category: video.category,
+    categories: video.categories
   })), [
+    {
+      title: "Bullpen vs varsity batters",
+      url: "/media/videos/bullpen-vs-varsity-batters-20261013-220355.mp4",
+      tags: ["Sinker", "Curveball", "Slider", "Changeup", "Bullpen"],
+      thumbnail: undefined,
+      date: "October 13, 2026",
+      caption: "Mix of sinker, slider, changeup, and curveball",
+      category: "Pitching",
+      categories: ["Pitching", "Training/Workouts"]
+    },
     {
       title: "K swinging vs Windsor righty",
       url: "/media/videos/k-swinging-vs-windsor-righty-20261013-144648.mov",
@@ -578,7 +648,8 @@ test("reading videos.json decodes GitHub's base64 content", async () => {
       thumbnail: undefined,
       date: "October 13, 2026",
       caption: "Came inside with slider, then outside with sinker",
-      category: "Pitching"
+      category: "Pitching",
+      categories: ["Pitching"]
     },
     {
       title: "Got the 3 hitter swinging",
@@ -587,7 +658,8 @@ test("reading videos.json decodes GitHub's base64 content", async () => {
       thumbnail: "/media/videos/got-the-3-hitter-swinging-20261013-124941.jpg",
       date: "October 13, 2026",
       caption: "Struck out the side, Top 1st, Casa Grande @ SM",
-      category: "Pitching"
+      category: "Pitching",
+      categories: ["Pitching"]
     },
     {
       title: "K swinging vs Casa Grande @ SM",
@@ -596,7 +668,8 @@ test("reading videos.json decodes GitHub's base64 content", async () => {
       thumbnail: "/media/videos/slider-k-game-20261013-124104.jpg",
       date: "October 13, 2026",
       caption: "Struck out Casa Grande’s lefty leadoff hitter with a slider",
-      category: "Pitching"
+      category: "Pitching",
+      categories: ["Pitching"]
     },
     {
       title: "Line drive single",
@@ -605,16 +678,18 @@ test("reading videos.json decodes GitHub's base64 content", async () => {
       thumbnail: "/media/videos/single-20261012-214250.jpg",
       date: "October 12, 2026",
       caption: "Single to RF vs 17u pitcher",
-      category: "Hitting"
+      category: "Hitting",
+      categories: ["Hitting"]
     },
     {
       title: "Got the K swinging vs lefty hitter",
       url: "/media/videos/curveball-game-20261012-204654.mov",
-      tags: ["Slider", "K", "Game"],
+      tags: ["Curveball", "K", "Game"],
       thumbnail: "/media/videos/curveball-game-20261012-204654.jpg",
       date: "October 12, 2026",
       caption: "Finished him with my slider",
-      category: "Pitching"
+      category: "Pitching",
+      categories: ["Pitching"]
     },
     {
       title: "K looking vs 17u hitter",
@@ -623,7 +698,8 @@ test("reading videos.json decodes GitHub's base64 content", async () => {
       thumbnail: "/media/videos/pitching-20261012-195823.jpg",
       date: "October 12, 2026",
       caption: "Caught him looking with a slider on the outside corner",
-      category: "Pitching"
+      category: "Pitching",
+      categories: ["Pitching"]
     }
   ]);
   assert.equal(data.videos.some(video => /placeholder/i.test(video.title)), false);
@@ -721,6 +797,10 @@ test("pitch history expands newest first and draws a trend after two readings", 
   assert.equal(pitching.columns.some(column => column.key === "cpct"), false);
   assert.equal(pitching.rows[0].cpct, undefined);
   const yml = fs.readFileSync(path.join(__dirname, "../admin/advanced/config.yml"), "utf8");
+  assert.match(yml, /name: categories/);
+  assert.match(yml, /multiple: true/);
+  assert.match(yml, /min: 1/);
+  assert.doesNotMatch(yml, /name: category\n/);
   assert.match(yml, /data\/pitches\.json/);
   assert.match(yml, /do not overwrite older ones/);
   assert.doesNotMatch(yml, /Game Highlights/);
@@ -751,7 +831,7 @@ test("pitch history expands newest first and draws a trend after two readings", 
 });
 
 test("admin pages bust caches and stay parseable on iOS 15 Safari", () => {
-  const version = "v=2";
+  const version = "v=3";
   const admin = fs.readFileSync(path.join(__dirname, "../admin/index.html"), "utf8");
   assert.match(admin, new RegExp("/admin/app\\.css\\?" + version));
   assert.match(admin, new RegExp("/admin/logic\\.js\\?" + version));
@@ -760,6 +840,7 @@ test("admin pages bust caches and stay parseable on iOS 15 Safari", () => {
   assert.match(admin, /unregister/);
   const home = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.match(home, new RegExp("admin/logic\\.js\\?" + version));
+  assert.match(home, new RegExp("js/app\\.js\\?" + version));
   const advanced = fs.readFileSync(path.join(__dirname, "../admin/advanced/index.html"), "utf8");
   assert.match(advanced, new RegExp("/admin/advanced/admin\\.css\\?" + version));
   assert.match(advanced, new RegExp("/admin/advanced/admin\\.js\\?" + version));

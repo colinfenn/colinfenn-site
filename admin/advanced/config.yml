@@ -41,7 +41,7 @@ collections:
             name: videos
             widget: list
             label_singular: Video
-            summary: "{{title}} — {{category}}"
+            summary: "{{title}} — {{categories}}"
             collapsed: true
             add_to_top: true
             hint: Use one or the other — a YouTube link, or an MP4 under 50 MB. If you fill in both, the uploaded file is the one that plays.
@@ -50,16 +50,19 @@ collections:
                 name: title
                 widget: string
                 hint: "Short name, like Bullpen sinker or Friday highlights."
-              - label: Category
-                name: category
+              - label: Categories
+                name: categories
                 widget: select
-                default: Pitching
+                multiple: true
+                min: 1
+                default:
+                  - Pitching
                 options:
                   - Pitching
                   - Hitting
                   - Fielding
                   - "Training/Workouts"
-                hint: This picks the tab on the site. Don't invent a new one.
+                hint: Pick every tab this clip belongs on. At least one. Don't invent a new one.
               - label: YouTube link
                 name: youtube
                 widget: string
