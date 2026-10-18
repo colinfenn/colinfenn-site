@@ -25,22 +25,6 @@
     return match ? match[0] : "";
   }
 
-  function paintReel(r) {
-    const el = $("#reel-media");
-    if (!el || !r) return;
-    if (r.url) {
-      const id = L.youtubeId(r.url);
-      el.innerHTML = r.type === "link"
-        ? `<a class="play link" href="${esc(r.url)}" target="_blank" rel="noopener noreferrer">Open clip</a>`
-        : id
-        ? `<iframe src="https://www.youtube-nocookie.com/embed/${id}" title="${esc(r.title || "Highlight reel")}" loading="lazy" allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>`
-        : `<video controls preload="metadata" playsinline src="${esc(r.url)}"></video>`;
-      el.classList.add("has");
-    }
-    const cap = $("#reel-caption");
-    if (cap) cap.textContent = r.caption || "";
-  }
-
   function paintAbout(url) {
     const el = $("#about-media");
     if (!el) return;
@@ -56,7 +40,6 @@
       : `<video controls preload="metadata" playsinline src="${esc(url)}"></video>`;
   }
 
-  let reelLocked = false;
   get("data/profile.json").then(p => {
     const dash = parts => parts.filter(v => v && !isPh(v)).join(" – ");
     const idLine = dash([p.name, p.position, p.gradYear ? "Class of " + p.gradYear : ""]);
@@ -86,7 +69,6 @@
         list.innerHTML = hon.map(honorCard).join("");
       } else list.remove();
     }
-    if (!reelLocked) paintReel(p.highlightReel || {});
     paintAbout(p.about && p.about.url);
     if (p.email) {
       $("#email").href = "mailto:" + p.email;
@@ -156,11 +138,6 @@
 
   get("data/videos.json").then(d => {
     const vids = d.videos || [];
-    const featured = vids.find(v => v.featured && v.url && v.type !== "placeholder");
-    if (featured) {
-      reelLocked = true;
-      paintReel(featured);
-    }
     const cats = (d.categories && d.categories.length ? d.categories : L.CATEGORIES).slice();
     let cat = cats[0] || "Pitching";
     let selected = [];

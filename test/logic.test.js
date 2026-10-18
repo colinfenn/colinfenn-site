@@ -302,7 +302,7 @@ test("the public site matches every selected tag and sorts newest first", () => 
   assert.match(src, /L\.isPresetTag\(tag\)/);
   assert.match(src, /L\.sortByDate\(/);
   assert.match(src, /Videos coming soon/);
-  assert.match(src, /v\.featured && v\.url/);
+  assert.doesNotMatch(src, /paintReel|reel-media|highlightReel|v\.featured && v\.url/);
   const logic = fs.readFileSync(path.join(__dirname, "../admin/logic.js"), "utf8");
   assert.match(logic, /https:\/\/i\.ytimg\.com\/vi\//);
   assert.match(logic, /hqdefault\.jpg/);
@@ -847,6 +847,7 @@ test("pitch history expands newest first and draws a trend after two readings", 
   assert.doesNotMatch(yml, /Game Highlights/);
   const html = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
   assert.match(html, /href="#videos">Videos<\/a><a href="#stats">Stats<\/a><a href="#velo">Velo<\/a><a href="#honors">Honors<\/a><a href="#about">About Me<\/a><a href="#contact">Contact<\/a>/);
+  assert.doesNotMatch(html, /id="reel"|Highlight Reel|reel-media|href="#reel"/);
   assert.match(html, /href="#about"/);
   assert.match(html, /About Me video coming soon/);
   assert.match(html, /Colin Fenn – LHP\/OF – Class of 2029/);
@@ -858,6 +859,7 @@ test("pitch history expands newest first and draws a trend after two readings", 
   assert.doesNotMatch(html, /id="honors" class="sec alt"|id="pitching"|gold banner/);
   assert.doesNotMatch(html, /id="academics"|id="schedule"|id="showcases"|id="references"|id="note"|FB Velo/);
   const profile = JSON.parse(fs.readFileSync(path.join(__dirname, "../data/profile.json"), "utf8"));
+  assert.ok(profile.highlightReel && typeof profile.highlightReel === "object");
   assert.equal(profile.honors[0].title, "Team MVP");
   assert.equal(profile.honors[0].level, "Freshman");
   assert.equal(profile.honors[0].season, "2026");
